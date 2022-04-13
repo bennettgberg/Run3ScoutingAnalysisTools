@@ -385,7 +385,7 @@ void EGammaOnly_ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::Ev
   Handle<vector<Run3ScoutingElectron> > electronsH;
   iEvent.getByToken(electronsToken, electronsH);
   bool eleValid = electronsH.isValid();
-  bool beamValid = beamSpotH.isValid();
+  //bool beamValid = beamSpotH.isValid();
   //if(!eleValid) {
   //  cout << "Error: electronsH invalid!!!" << endl;
   //  if(beamValid) cout << "beamSpotH is valid tho" << endl;
@@ -429,7 +429,12 @@ void EGammaOnly_ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::Ev
 //  /////////////////// for genmatching /////////////////////////////////////////////
   n_gen=0;
   n_genpartmomZ = 0;
+  cout << "gensH isValid: " << gensH.isValid() << endl;
+  if(gensH.isValid())
   for (auto gen_iter = gensH->begin(); gen_iter != gensH->end(); ++gen_iter) {
+    //cout << "starting loop iteration " << n_gen << endl;
+    //cout << "this particle is: " << gen_iter->pdgId() << endl;
+    int nmoms = 0;
     if((std::abs(gen_iter->pdgId())==11 || std::abs(gen_iter->pdgId())==13 || std::abs(gen_iter->pdgId())==15)) {
       genpart_pdg.push_back(gen_iter->pdgId());
       genpart_pt.push_back(gen_iter->pt());
@@ -439,18 +444,25 @@ void EGammaOnly_ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::Ev
       genpart_vx.push_back(gen_iter->vx());
       genpart_vy.push_back(gen_iter->vy());
       genpart_vz.push_back(gen_iter->vz());
-      genpart_nmoms.push_back(gen_iter->numberOfMothers());
-      genpart_mompdg.push_back(gen_iter->mother(0)->pdgId());
+      //cout << "now will push back mothers." << endl;
+      nmoms = gen_iter->numberOfMothers();
+      genpart_nmoms.push_back(nmoms);
+      //cout << "nmoms found: " << nmoms << endl;
+      if(gen_iter->numberOfMothers() > 0) genpart_mompdg.push_back(gen_iter->mother(0)->pdgId());
+      //cout << "mom pdg found." << endl;
       genpart_isPromptFS.push_back(gen_iter->isPromptFinalState());
+      //cout << "mom ispromptFinal found." << endl;
       genpart_isPromptDec.push_back(gen_iter->isPromptDecayed());
+      //cout << "mom ispromptDecayed found." << endl;
       genpart_isDirectPromptTauDecayProdFS.push_back(gen_iter->isDirectPromptTauDecayProductFinalState());
       n_gen++;
-    }
+    } //end if gen lepton
     //if((std::abs(gen_iter->pdgId())==11 || std::abs(gen_iter->pdgId())==13 || std::abs(gen_iter->pdgId())==15) && gen_iter->isLastCopy() ){ 
     //std::cout<<n_gen<<"\t"<<gen_iter->pdgId()<<"\t"<<gen_iter->status()<<"\t"<<gen_iter->pt()<<std::endl;
     //std::cout<<gen_iter->pdgId()<<"\t"<<gen_iter->status()<<"\t"<<gen_iter->pt()<<"\t"<<gen_iter->numberOfDaughters()<<"\t"<<gen_iter->numberOfMothers()<<"\t"<<gen_iter->fromHardProcessBeforeFSR()<<"\t"<<gen_iter->fromHardProcessDecayed()<<"\t"<<gen_iter->fromHardProcessFinalState()<<std::endl;
     //}
-    if( ((std::abs(gen_iter->pdgId())==11 || std::abs(gen_iter->pdgId())==13 || std::abs(gen_iter->pdgId())==15)) && 
+    //cout << "starting 2nd if statement." << endl;
+    if( nmoms > 0 && ((std::abs(gen_iter->pdgId())==11 || std::abs(gen_iter->pdgId())==13 || std::abs(gen_iter->pdgId())==15)) && 
 	(std::abs(gen_iter->mother(0)->pdgId())==23 || std::abs(gen_iter->mother(0)->pdgId())==22)) {
       genpartmomZ_pdg.push_back(gen_iter->pdgId());
       genpartmomZ_pt.push_back(gen_iter->pt());
@@ -464,8 +476,10 @@ void EGammaOnly_ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::Ev
       genpartmomZ_isPromptDec.push_back(gen_iter->isPromptDecayed());
       genpartmomZ_isDirectPromptTauDecayProdFS.push_back(gen_iter->isDirectPromptTauDecayProductFinalState());
       n_genpartmomZ++;
-    }
-  }
+    } //end if gen lepton, offspring of photon or Z
+    //cout << "ended loop iteration " << n_gen << endl;
+  } //end for genpart loop
+  //cout << "ended whole gen_iter loop." << endl;
  ////////////////////// for gen matching (I think) ////////////////////////////////////////// 
   n_ele = 0;
   //cout << "now about to start the electrons loop." << endl;
