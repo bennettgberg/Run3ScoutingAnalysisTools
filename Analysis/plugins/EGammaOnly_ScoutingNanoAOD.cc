@@ -40,6 +40,7 @@
 #include "FWCore/Common/interface/TriggerNames.h"
 #include "DataFormats/Common/interface/TriggerResults.h"
 #include "DataFormats/HLTReco/interface/TriggerEvent.h"
+#include "DataFormats/HLTReco/interface/EgammaObject.h"
 
 #include "DataFormats/Scouting/interface/Run3ScoutingElectron.h"
 #include "DataFormats/Scouting/interface/Run3ScoutingPhoton.h"
@@ -214,6 +215,8 @@ private:
   vector<vector<Float16_t>> Electron_energymatrix;
   vector<vector<Float16_t>> Electron_timingmatrix;
 
+  //trying to get Electron supercluster energy (should be the same as E in H/E)
+  vector<Float16_t>   Electron_energy;
   //Photon
   const static int 	max_pho = 1000;
   UInt_t n_pho;
@@ -371,6 +374,7 @@ void EGammaOnly_ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::Ev
   using namespace fastjet;
   using namespace fastjet::contrib;
       
+  //cout << "about to try to get the handles." << endl;
   // Handles to the EDM content
   edm::Handle<edm::TriggerResults> triggerResultsH;
   iEvent.getByToken(triggerResultsToken, triggerResultsH);
@@ -380,9 +384,20 @@ void EGammaOnly_ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::Ev
 
   Handle<vector<Run3ScoutingElectron> > electronsH;
   iEvent.getByToken(electronsToken, electronsH);
+  bool eleValid = electronsH.isValid();
+  bool beamValid = beamSpotH.isValid();
+  //if(!eleValid) {
+  //  cout << "Error: electronsH invalid!!!" << endl;
+  //  if(beamValid) cout << "beamSpotH is valid tho" << endl;
+  //  else cout << "beamSpotH is invalid too." << endl;
+  //}  
+  //else {
+  //  cout << "electronsH is valid." << endl;
+  //}
 
   Handle<vector<Run3ScoutingPhoton> > photonsH;
   iEvent.getByToken(photonsToken, photonsH);
+  bool phoValid = photonsH.isValid();
 
   Handle<vector<reco::GenParticle> >gensH;
   iEvent.getByToken(gensToken, gensH);
@@ -393,7 +408,7 @@ void EGammaOnly_ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::Ev
   run = iEvent.eventAuxiliary().run();
   lumSec = iEvent.eventAuxiliary().luminosityBlock();
   //cout<<"Run number: "<<run<<". Lumi: "<<lumSec<<endl;
-  
+  //cout << "handles and junk gotten." << endl; 
   // Which triggers fired
   for (size_t i = 0; i < triggerPathsVector.size(); i++) {
     if (triggerPathsMap[triggerPathsVector[i]] == -1) continue;
@@ -410,7 +425,8 @@ void EGammaOnly_ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::Ev
   beamspot_x = beamSpotH->x0();
   beamspot_y = beamSpotH->y0();
   beamspot_z = beamSpotH->z0();
-  /*
+  
+//  /////////////////// for genmatching /////////////////////////////////////////////
   n_gen=0;
   n_genpartmomZ = 0;
   for (auto gen_iter = gensH->begin(); gen_iter != gensH->end(); ++gen_iter) {
@@ -450,9 +466,14 @@ void EGammaOnly_ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::Ev
       n_genpartmomZ++;
     }
   }
-  */
+ ////////////////////// for gen matching (I think) ////////////////////////////////////////// 
   n_ele = 0;
-  for (auto electrons_iter = electronsH->begin(); electrons_iter != electronsH->end(); ++electrons_iter) {
+  //cout << "now about to start the electrons loop." << endl;
+  //for (auto electrons_iter = electronsH->begin(); electrons_iter != electronsH->end(); ++electrons_iter) {
+  if(eleValid)
+  for (auto &ele : *electronsH) {
+    auto *electrons_iter = &ele;
+    //cout << "started the loop." << endl;
     Electron_pt.push_back(electrons_iter->pt());
     Electron_eta.push_back(electrons_iter->eta());
     Electron_phi.push_back(electrons_iter->phi());	
@@ -476,10 +497,12 @@ void EGammaOnly_ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::Ev
     Electron_energymatrix.push_back(electrons_iter->energyMatrix());
     Electron_timingmatrix.push_back(electrons_iter->timingMatrix());
     n_ele++;
+    //cout << "finished an iteration of the electrons loop." << endl;
   }
-  
+  //cout << "electrons loop finished." << endl; 
   n_pho = 0;
   
+  if(phoValid)
   for (auto photons_iter = photonsH->begin(); photons_iter != photonsH->end(); ++photons_iter) {
     Photon_pt.push_back(photons_iter->pt());
     Photon_eta.push_back(photons_iter->eta());
