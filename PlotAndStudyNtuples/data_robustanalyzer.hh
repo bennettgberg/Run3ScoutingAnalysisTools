@@ -4,6 +4,7 @@
 #include "TFile.h"
 #include "TString.h"
 #include "TH1F.h"
+#include "TH2F.h"
 #include "TTreeReader.h"
 #include "TTreeReaderValue.h"
 #include "TTreeReaderArray.h"
@@ -18,9 +19,12 @@ class data_robustanalyzer {
   
   void analyzersinglefile(int);
   void addhist(TString);
-  void fillhistinevent(TString, vector<int>);
+  void fillhistinevent(TString, vector<int>, vector<TH2F*>, vector<int>, vector<int>, TH1F*, TH1F*, TH1F*, TH1F*);
   void sort(int*, TTreeReaderValue<std::vector<float>> *, int);
   pair<int,int> inZwindow(vector<int>);
+  //bpg adding
+  void fillHoEvsPt(TH2F* hoevspt, vector<int> signalElectrons);
+  pair<int,int> genMatch(vector<int>);
   
  private:
 
@@ -53,6 +57,12 @@ class data_robustanalyzer {
   TTreeReaderValue<vector<unsigned int>> *ele_seedid;
   TTreeReaderValue<vector<vector<float>>> *ele_enemat;
   TTreeReaderValue<vector<vector<float>>> *ele_timmat;
+
+  //gen branches
+  TTreeReaderValue<vector<float>> *genpart_pt;
+  TTreeReaderValue<vector<float>> *genpart_eta;
+  TTreeReaderValue<vector<float>> *genpart_phi;
+  TTreeReaderValue<vector<int>> *genpart_pdg;
   
   TFile* outfile;
 
