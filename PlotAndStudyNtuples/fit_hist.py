@@ -4,10 +4,11 @@ import ROOT
 #fname = "hists_DoubleElectron_ScoutingSkim220411.root"
 fname = "hists_new.root"
 f = ROOT.TFile(fname)
-
+f.Print()
 #here's the 2D hist that we have to fit.
 #hname = "hoevsptBkg"
-hname = "hVe"
+#hname = "hVe"
+hname = "hnew"
 
 #fnew = ROOT.TFile("hists_new.root", "recreate") 
 for fitnum in range(1, 6):
@@ -33,6 +34,7 @@ for fitnum in range(1, 6):
     xmin = 0 #2 
     #only interested in low pt (below 10 GeV)
     xmax = 500 #10
+    ymax = 40
     #fitting function
     #f1 = ROOT.TF1("f1", "(gaus(0))", xmin, xmax)
     f1 = ROOT.TF1("f1", "([0]*x + [1])", xmin, xmax)
@@ -41,6 +43,7 @@ for fitnum in range(1, 6):
     #slices = ROOT.TObjArray()
     #print("slices made: " + str(slices))
     #h2d.FitSlicesX(f1, 0, -1, 0, "G5 NR", slices)
+    hnew.Draw("colz")
     hnew.Fit(f1)
     #param 0 is the const multiplier of the gaussian
     #slices[0].Print()

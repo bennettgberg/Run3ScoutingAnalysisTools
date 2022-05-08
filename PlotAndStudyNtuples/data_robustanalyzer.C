@@ -92,10 +92,20 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
   TH2F* hoevpt = new TH2F("hoevspt", "H/E vs. #p_T for genmatched e-s", 1000, 0, 10, 4000, 0, 4.0);
   TH2F* hoevptBkg = new TH2F("hoevsptBkg", "H/E vs. #p_T for e-s NOT genmatched", 1000, 0, 10, 4000, 0, 4.0);
   //hists for efficiency as function of pT
+    //all gen electrons
+  TH1F* all_gen = new TH1F("allgen", "", 500, 0., 50.);
+    //all gen-matched electrons
   TH1F* all_sig = new TH1F("allsig", "", 500, 0., 50.);
+    //gen-matched electrons passing the new H/E cut
   TH1F* passed_sig = new TH1F("passedsig", "", 500, 0., 50.);
+    //gen-matched electrons passing the old H/E cut H/E<.2
+  TH1F* old_passed_sig = new TH1F("oldpassedsig", "", 500, 0., 50.);
+    //all non-gen-matched electrons
   TH1F* all_bkg = new TH1F("allbkg", "", 500, 0., 50.);
+    //non-gen-matched electrons passing the new H/E cut
   TH1F* passed_bkg = new TH1F("passedbkg", "", 500, 0., 50.);
+    //non-gen-matched electrons passing the old H/E cut H/E<.2
+  TH1F* old_passed_bkg = new TH1F("oldpassedbkg", "", 500, 0., 50.);
   //vector of TH2 plots comparing H and E
   // plot 0 is all pt, plot 1 is 2<pt<5, plot2 is 5<pt<8, plot3 is 8<pt<10 GeV.
   //hVe0: all
@@ -115,6 +125,8 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
   hoevpt->GetYaxis()->SetTitle("H/E");
   hoevpt->SetMarkerColor(2);
   hoevptBkg->SetMarkerColor(3);
+  int nZeroe = 0;
+  int nNonzeroe = 0;
   // Loop beginning on events
   while(tree->Next()) {
 
@@ -124,7 +136,16 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
     if(event%10000==0) std::cout<<"Processed event: "<<event+1<<std::endl;
 
     if((*(*n_ele))<0) cout<<"Error!!! Wrong technical event processing. Negative number of electrons in event."<<endl;;
-    if((*(*n_ele))==0) continue;
+    if((*(*n_ele))==0) { 
+        nZeroe++;
+        continue;
+    }
+    nNonzeroe++;
+    
+    //fill in the gen electrons histogram
+    for(unsigned int genctr=0; genctr < (*genpart_pt)->size(); genctr++) {
+        all_gen->Fill( (*genpart_pt)->at(genctr) );
+    }
     
     // Sort the electrons based on their pT
     vector<int> sortedelidx((*(*n_ele)));
@@ -136,6 +157,13 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
 
       // Take the sorted index only
       unsigned int elidx = sortedelidx[ele_ctr];
+
+      float this_eta = (*ele_eta)->at(elidx);
+
+      //barrel ONLY at this time.
+      //if(abs(this_eta) > 1.479) continue;
+      //endcap only at THIS time.
+      if(abs(this_eta) < 1.479) continue;
 
       noselelidx.push_back(elidx);
 
@@ -178,7 +206,7 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
 
     if(noselelidx.size()>0) nosel++;
     //fillhistinevent("nosel", noselelidx, hVe);
-    fillhistinevent("nosel", noselelidx, hVe, noselZwindelidx, notZwindelidx, all_sig, passed_sig, all_bkg, passed_bkg);
+    fillhistinevent("nosel", noselelidx, hVe, noselZwindelidx, notZwindelidx, all_sig, passed_sig, all_bkg, passed_bkg, old_passed_sig, old_passed_bkg);
     if(noselZwindelidx.size()>0) noselZwind++;
     //fillhistinevent("noselZwind", noselZwindelidx, vector<TH2F*>(0), vector<int>(0));
 
@@ -199,10 +227,11 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
   } // End of loop on events
 
   cout<<totEntries<<"\t"<<endevent-beginevent<<"\t"<<nosel<<endl;
+  cout << "Events with zero electrons: " << nZeroe << "; events with nonzero electrons: " << nNonzeroe << endl;
 }
 
 // Function to fill a set of histograms for gen particles
-void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, vector<TH2F*> hVe, vector<int> elidx_gm, vector<int> elidx_notgm, TH1F* all_sig, TH1F* passed_sig, TH1F* all_bkg, TH1F* passed_bkg) {
+void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, vector<TH2F*> hVe, vector<int> elidx_gm, vector<int> elidx_notgm, TH1F* all_sig, TH1F* passed_sig, TH1F* all_bkg, TH1F* passed_bkg, TH1F* old_passed_sig, TH1F* old_passed_bkg) {
 
   if(elidx.size()==0) return;
 
@@ -264,6 +293,8 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
     }
 
     if(TMath::Abs((*ele_eta)->at(elidx[ctr]))<1.479) {
+      cout << "ERROR: barrel electrons still here!!!!!" << endl;
+      exit(0);
       barelpt->Fill((*ele_pt)->at(elidx[ctr]));
       barelm->Fill((*ele_m)->at(elidx[ctr]));
       bareld0->Fill((*ele_d0)->at(elidx[ctr]));
@@ -285,6 +316,8 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
     }
 
     else {
+      //cout << "ERROR: endcap electrons still here!!!!!" << endl;
+      //exit(0);
       ecelpt->Fill((*ele_pt)->at(elidx[ctr]));
       ecelm->Fill((*ele_m)->at(elidx[ctr]));
       eceld0->Fill((*ele_d0)->at(elidx[ctr]));
@@ -342,6 +375,9 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
         //passed the cut
         passed_sig->Fill(Electron_pt);
     }
+    if(had_energy / energy_sum < 0.2) {
+        old_passed_sig->Fill(Electron_pt);
+    }
     all_sig->Fill(Electron_pt);
     
   } //end genmatched electron loop
@@ -360,6 +396,9 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
     if(had_energy < newcut) {
         //passed the cut
         passed_bkg->Fill(Electron_pt);
+    }
+    if(had_energy / energy_sum < 0.2) {
+        old_passed_bkg->Fill(Electron_pt);
     }
     all_bkg->Fill(Electron_pt);
   } //end notgenmatched electron loop
@@ -464,15 +503,16 @@ void data_robustanalyzer::fillHoEvsPt(TH2F* hoevpt, vector<int> signalElectrons)
 
 //find the best match for the gen particles
 pair<int,int> data_robustanalyzer::genMatch(vector<int> electronIdxs) {
-    //first make sure we have the needed gen information
-    if((*genpart_pt)->size() != 2) {
-        cout << "Error: need exactly 2 gen particles but we have " << (*genpart_pt)->size() << endl;
-        throw "NGenParticleError";
-    }
     //pair for the electrons matched to the gen electrons
     pair<int,int> matchedPair;
     matchedPair.first = -1;
     matchedPair.second = -1;
+    //first make sure we have the needed gen information
+    if((*genpart_pt)->size() != 2) {
+        cout << "Error: need exactly 2 gen particles but we have " << (*genpart_pt)->size() << endl;
+        //throw "NGenParticleError";
+        return matchedPair;
+    }
     //vector of (2) gen particles--
     //set each to -1 once it's matched to make sure we can't match to the same one twice!
     vector<int> genParts(2);

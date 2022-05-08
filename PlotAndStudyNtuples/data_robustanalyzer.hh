@@ -19,7 +19,7 @@ class data_robustanalyzer {
   
   void analyzersinglefile(int);
   void addhist(TString);
-  void fillhistinevent(TString, vector<int>, vector<TH2F*>, vector<int>, vector<int>, TH1F*, TH1F*, TH1F*, TH1F*);
+  void fillhistinevent(TString, vector<int>, vector<TH2F*>, vector<int>, vector<int>, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*);
   void sort(int*, TTreeReaderValue<std::vector<float>> *, int);
   pair<int,int> inZwindow(vector<int>);
   //bpg adding

@@ -29,7 +29,7 @@ nloops = int(ceil(ntot / nfile))
 #how many loops must be gone through
 commands = []
 for mainnum in range(nloops):
-    cmd = "hadd hists_" + outname + "_mainnum" + str(mainnum) + ".root  "
+    cmd = "hadd -f hists_" + outname + "_mainnum" + str(mainnum) + ".root  "
 
     #have to do + 1 bc stupid files don't start at 0
     startnum = mainnum*nfile + startn
