@@ -90,7 +90,7 @@ params.parseArguments()
 # Message Logger settings
 process.load("FWCore.MessageService.MessageLogger_cfi")
 #process.MessageLogger.destinations = ['cout', 'cerr']
-process.MessageLogger.cerr.FwkReport.reportEvery = 1000
+process.MessageLogger.cerr.FwkReport.reportEvery = 10
 
 # Set the process options -- Display summary at the end, enable unscheduled execution
 process.options = cms.untracked.PSet(
@@ -130,29 +130,13 @@ else :
 process.TFileService = cms.Service("TFileService", 
                                    fileName = cms.string(params.output)
                                )
-#from DarkPhotonAnalysis.DimuonAnalysis2018.TriggerPaths_cfi import getL1Conf
-L1Info = ['L1_DoubleMu4p5er2p0_SQ_OS_Mass_Min7', 'L1_DoubleMu_12_5','L1_DoubleMu_15_7','L1_TripleMu_5_3_3','L1_TripleMu_5_5_3','L1_QuadMu0','L1_DoubleMu0er1p5_SQ_OS_dR_Max1p4','L1_DoubleMu4p5er2p0_SQ_OS_Mass7to18','L1_DoubleMu4_SQ_OS_dR_Max1p2','L1_SingleMu22','L1_DoubleMu0er1p4_SQ_OS_dR_Max1p4','L1_DoubleMu4p5_SQ_OS_dR_Max1p2','L1_DoubleMu4p5_SQ_OS','L1_DoubleMu0er1p5_SQ_dR_Max1p4','L1_DoubleMu0er2p0_SQ_dR_Max1p4','L1_DoubleMu0_SQ']
+
 # Make tree
 process.mmtree = cms.EDAnalyzer('EGammaOnly_ScoutingNanoAOD',
-                                triggerresults   = cms.InputTag("TriggerResults", "", params.trigProcess),
-                                doL1 = cms.bool(False),
-                                triggerConfiguration = cms.PSet(
-                                    hltResults            = cms.InputTag('TriggerResults','','HLT'),
-                                    l1tResults            = cms.InputTag(''),
-                                    daqPartitions         = cms.uint32(1),
-                                    l1tIgnoreMaskAndPrescale = cms.bool(False),
-                                    throw                 = cms.bool(False)
-                                ),
-                                ReadPrescalesFromFile = cms.bool( False ),
-                                AlgInputTag       = cms.InputTag("gtStage2Digis"),
-                                l1tAlgBlkInputTag = cms.InputTag("gtStage2Digis"),
-                                l1tExtBlkInputTag = cms.InputTag("gtStage2Digis"),
-                                l1Seeds           = cms.vstring(L1Info),
                                 beamspot        = cms.InputTag("hltOnlineBeamSpot"),
                                 electrons        = cms.InputTag("hltScoutingEgammaPacker"),
                                 photons          = cms.InputTag("hltScoutingEgammaPacker"),
-                                gens = cms.InputTag("genParticles"),
-                                
+                                gens = cms.InputTag("genParticles")
                             )
 
 process.p = cms.Path(                  process.mmtree)

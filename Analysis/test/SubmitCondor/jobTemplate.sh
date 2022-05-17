@@ -4,8 +4,8 @@
 cd /afs/cern.ch/work/b/bgreenbe/public/CMSSW_12_3_2/src/
 eval `scram runtime -sh`
 
-#cd ./Run3ScoutingAnalysisTools/Analysis/test
-cd ../../CMSSW_12_3_0_pre6/src/Run3ScoutingAnalysisTools/Analysis/test
+cd ./Run3ScoutingAnalysisTools/Analysis/test
+#cd ../../CMSSW_12_3_0_pre6/src/Run3ScoutingAnalysisTools/Analysis/test
 
 #ls
 echo "=========== BEGINNING TO RUN THE SCRIPT ================"
@@ -16,12 +16,14 @@ voms-proxy-info -all -file /afs/cern.ch/user/b/bgreenbe/x509up_u104084
 
 #testname="DoubleElectron_ScoutingSkim220410"
 #testname="DoubleElectron_ScoutingSkim220411"
-testname="DoubleElectron_ScoutingSkim220506"
+#testname="DoubleElectron_ScoutingSkim220506"
+#testname="QCD_ScoutingSkim220510"
+testname="DYToLL_ScoutingSkim220510"
 #mkdir -p /eos/user/b/bgreenbe/scouting/ntuples/$testname
 jobnum=$1
 echo "script number $jobnum"
 #how many files to do per job
-nfiles=1 #20 #4821
+nfiles=10 #4821
 ##MAKE SURE TO CHANGE THIS BACK!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
 startnum=$(( jobnum * nfiles + 1 ))
 endnum=$(( startnum + nfiles - 1 ))
@@ -42,7 +44,9 @@ do
     echo "starting num $num"
     dirnum=$(( num / 1000 ))
     #fulldir="/eos/user/b/bgreenbe/scouting/DoubleElectron_Pt-1To300-gun/ScoutingSkim220409_DoubleElectronGunRun3Summer21_bgreenbe/220408_150915/000$dirnum"
-    fulldir="/eos/user/b/bgreenbe/scouting/DoubleElectron_Pt-1To300-gun/ScoutingSkim220506_DoubleElectron_bgreenbe/220506_160453/000$dirnum"
+    #fulldir="/eos/user/b/bgreenbe/scouting/DoubleElectron_Pt-1To300-gun/ScoutingSkim220506_DoubleElectron_bgreenbe/220506_160453/000$dirnum"
+    #fulldir="/eos/user/b/bgreenbe/scouting/QCD_Pt-20To30_EMEnriched_TuneCP5_14TeV-pythia8/ScoutingSkim220510_QCDPt20-30_bgreenbe/220510_212445/000$dirnum"
+    fulldir="/eos/user/b/bgreenbe/scouting/DYToLL_M-4To50_TuneCP5_14TeV-pythia8/ScoutingSkim220510_DYToLL_bgreenbe/220510_161328/000$dirnum"
     #fulldir="/eos/user/b/bgreenbe/scouting/QCD_Pt-20To30_EMEnriched_TuneCP5_14TeV-pythia8/ScoutingSkim220429_QCDPt20To30_bgreenbe/220429_000456/000$dirnum"
     #fulldir="/store/user/asahasra/QCD_Pt-20To30_EMEnriched_TuneCP5_14TeV-pythia8/ScoutingSkim220127_QCDPt20To30EmEnrichedRun3Summer21_asahasra/220128_130326/0000/"
     #fulldir="/store/user/asahasra/QCD_Pt-20To30_EMEnriched_TuneCP5_14TeV-pythia8/ScoutingSkim220329_QCDPt20To30EmEnrichedRun3Summer21_asahasra/220330_115058/0000/"

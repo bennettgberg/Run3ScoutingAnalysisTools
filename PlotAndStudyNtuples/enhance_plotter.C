@@ -129,7 +129,7 @@ TCanvas* enhance_plotter(vector<TH1F*> histvec, vector<TString> legNam, TString 
   lat4_l.SetTextSize(0.5);
   lat4_l.SetTextFont(132);
   lat4_l.SetTextAlign(12);
-  lat4_l.DrawLatex(0.07,0.5,"CMS Preliminary");
+  lat4_l.DrawLatex(0.07,0.5," ");
   TLatex lat4_r;
   lat4_r.SetTextSize(0.5);
   lat4_r.SetTextFont(132);
