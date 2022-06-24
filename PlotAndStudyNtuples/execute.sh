@@ -6,8 +6,10 @@ echo "Compiling successful. Begin execution."
 #outname="DoubleElectronGun"
 #DYToLLM50_ScoutingSkim220404_0_18.root
 #outname="DYToLLM50_ScoutingSkim220404"
-outname="DoubleElectron_ScoutingSkim220411"
-#outname="QCD_ScoutingSkim220429"
+#outname="DoubleElectron_ScoutingSkim220411"
+#outname="DoubleElectron_ScoutingSkim220517"
+#outname="QCD_ScoutingSkim220510"
+outname='DYToLL_ScoutingSkim220510'
 
 #how many processing cores are available to us
 nproc=6

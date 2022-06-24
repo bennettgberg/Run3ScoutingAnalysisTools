@@ -24,7 +24,8 @@ class data_robustanalyzer {
   pair<int,int> inZwindow(vector<int>);
   //bpg adding
   void fillHoEvsPt(TH2F* hoevspt, vector<int> signalElectrons);
-  pair<int,int> genMatch(vector<int>);
+  //pair<int,int> genMatch(vector<int>, bool);
+  vector<int> genMatch(vector<int>, bool, vector<TH1D*>, vector<TH1D*>, vector<TH1D*>, vector<TH1D*>);
   
  private:
 
@@ -63,6 +64,8 @@ class data_robustanalyzer {
   TTreeReaderValue<vector<float>> *genpart_eta;
   TTreeReaderValue<vector<float>> *genpart_phi;
   TTreeReaderValue<vector<int>> *genpart_pdg;
+  TTreeReaderValue<vector<bool>> *genpart_isFinalState;
+  TTreeReaderValue<UInt_t> *n_genpart;
   
   TFile* outfile;
 

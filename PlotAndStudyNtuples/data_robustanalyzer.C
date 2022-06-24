@@ -9,6 +9,13 @@
 
 using namespace std;
 
+const float h0 = 7.; // 2.; //16.;
+const bool issig = true; //false;
+int ngm = 0;
+int npassed = 0;
+int noldpassed = 0;
+//true for ElectronGun, false for real simulations like DY
+bool isGun = false;
 // Initialize and open the root file in the constructor
 data_robustanalyzer::data_robustanalyzer(TString filename, TString outfilename, bool isDoubleElectron){
 
@@ -50,6 +57,16 @@ data_robustanalyzer::data_robustanalyzer(TString filename, TString outfilename, 
   genpart_eta = new TTreeReaderValue<vector<float>>((*tree), "genpart_eta");
   genpart_phi = new TTreeReaderValue<vector<float>>((*tree), "genpart_phi");
   genpart_pdg = new TTreeReaderValue<vector<int>>((*tree), "genpart_pdg");
+
+  //need this for real (DY) samples, but NOT for gun samples
+  if(isGun) {
+      genpart_isFinalState = new TTreeReaderValue<vector<bool>>((*tree), "genpart_fromHardProcessFS");
+  }
+  else {
+      genpart_isFinalState = new TTreeReaderValue<vector<bool>>((*tree), "genpart_isLastCopy"); 
+  }
+
+  n_genpart = new TTreeReaderValue<UInt_t>((*tree), "n_genpart");
   
   outfile = new TFile(outfilename,"RECREATE");
 }
@@ -70,11 +87,11 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
   // Verfied that this logic to parallelize works
   int nCores = 6; // Assume parallel processing over 7 cores where
   // there is a lesser no.of events in the last core
-  int beginevent = splitCnt*(totEntries/nCores);
-  int endevent = (splitCnt+1)*(totEntries/nCores);
+  int beginevent = 0; //splitCnt*(totEntries/nCores);
+  int endevent = totEntries; //(splitCnt+1)*(totEntries/nCores);
   if(beginevent>=totEntries) return;
-  endevent = endevent<totEntries?endevent:totEntries;
-  tree->SetEntriesRange(beginevent, endevent);
+  //endevent = endevent<totEntries?endevent:totEntries;
+  //tree->SetEntriesRange(beginevent, endevent);
   int event = beginevent-1;
 
   // Count events passing certain selections
@@ -106,21 +123,44 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
   TH1F* passed_bkg = new TH1F("passedbkg", "", 500, 0., 50.);
     //non-gen-matched electrons passing the old H/E cut H/E<.2
   TH1F* old_passed_bkg = new TH1F("oldpassedbkg", "", 500, 0., 50.);
+    //number of gen electrons in the event
+  TH1D* n_gen_ele = new TH1D("ngenele", "", 15, 0, 15);
+  TH1D* n_reco_ele = new TH1D("nrecoele", "", 15, 0, 15);
+
   //vector of TH2 plots comparing H and E
   // plot 0 is all pt, plot 1 is 2<pt<5, plot2 is 5<pt<8, plot3 is 8<pt<10 GeV.
   //hVe0: all
   //hVe1: pt<5; hVe2: 5<pt<8; hVe3: 8<pt<10; hVe4: 10<pt<15; hVe5:15<pt<20; hVe6:pt>20 GeV
    //GENMATCHED ONLY!
-  vector<TH2F*> hVe(7);
+  vector<TH2F*> hVe(8);
+  vector<TH1D*> deta_all(8);
+  vector<TH1D*> deta_gmd(8);
+  vector<TH1D*> qdphi_all(8);
+  vector<TH1D*> qdphi_gmd(8);
   for(uint32_t i = 0; i < hVe.size(); i++) {
       stringstream hname;
       hname << "hVe" << i;
-      hVe[i] = new TH2F(hname.str().c_str(), "H vs. E", 2000, 0, 200, 15000, 0, 1500.0);
-      hVe[i]->GetXaxis()->SetTitle("HCal energy deposits (GeV)");
-      hVe[i]->GetYaxis()->SetTitle("ECal energy deposits (GeV)");
+      //hVe[i] = new TH2F(hname.str().c_str(), "H vs. E", 2000, 0, 200, 15000, 0, 1500.0);
+      hVe[i] = new TH2F(hname.str().c_str(), "H vs. E", 15000, 0, 1500, 2000, 0, 200);
+      hVe[i]->GetYaxis()->SetTitle("HCal energy deposits (GeV)");
+      hVe[i]->GetXaxis()->SetTitle("ECal energy deposits (GeV)");
       hVe[i]->SetMarkerColor(2);
+        
+      //plot of deltaEta for all possible scoutingElectron-genElectron pairs
+      stringstream detaname; detaname << "detaall" << i;
+      deta_all[i] = new TH1D(detaname.str().c_str(), "", 300, 0, 3.0 );
+      //plot of deltaEta for only genMatched scoutingElectrons-genElectron pairs
+      stringstream detagname; detagname << "detagmd" << i;
+      deta_gmd[i] = new TH1D(detagname.str().c_str(), "", 300, 0, 3.0);
+      //plot of deltaPhi for all possible genMatched scoutingElectrons-genElectron pairs
+      stringstream qdphiname; qdphiname << "qdphiall" << i;
+      qdphi_all[i] = new TH1D(qdphiname.str().c_str(), "", 630, -3.15, 3.15);
+      //plot of deltaPhi for only genMatched scoutingElectrons-genElectron pairs
+      stringstream qdphigname; qdphigname << "qdphigmd" << i;
+      qdphi_gmd[i] = new TH1D(qdphigname.str().c_str(), "", 630, -3.15, 3.15);
   } //end i loop instantiating hVe.
 
+    int nLastCut = 0; //keep track of how many gen electrons are cut by the 'isLastCopy' requirement
   hoevpt->GetXaxis()->SetTitle("#p_T (GeV)");
   hoevpt->GetYaxis()->SetTitle("H/E");
   hoevpt->SetMarkerColor(2);
@@ -138,15 +178,31 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
     if((*(*n_ele))<0) cout<<"Error!!! Wrong technical event processing. Negative number of electrons in event."<<endl;;
     if((*(*n_ele))==0) { 
         nZeroe++;
-        continue;
+        //continue;
     }
     nNonzeroe++;
     
+    int ngenele = 0;
+    int ngenNotele = 0;
     //fill in the gen electrons histogram
-    for(unsigned int genctr=0; genctr < (*genpart_pt)->size(); genctr++) {
-        all_gen->Fill( (*genpart_pt)->at(genctr) );
-    }
-    
+    //for(unsigned int genctr=0; genctr < (*genpart_pt)->size(); genctr++) {
+    for(unsigned int genctr=0; genctr < *(*n_genpart); genctr++) {
+        //fill only electrons! AND only if is in final state!
+        if(abs((*genpart_pdg)->at(genctr)) == 11 && (*genpart_isFinalState)->at(genctr)) {
+            all_gen->Fill( (*genpart_pt)->at(genctr) );
+            ngenele++;
+        }
+        else {
+            if(abs((*genpart_pdg)->at(genctr)) == 11) {
+                nLastCut++;
+            }
+            ngenNotele++;
+        }
+    } //end filling in the gen electrons hist
+    //cout << "ngenele: " << ngenele << ", ngenNotele: " << ngenNotele << endl;
+    n_gen_ele->Fill(ngenele);    
+    n_reco_ele->Fill((*(*n_ele)));
+
     // Sort the electrons based on their pT
     vector<int> sortedelidx((*(*n_ele)));
     iota(begin(sortedelidx), end(sortedelidx), 0);
@@ -163,7 +219,7 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
       //barrel ONLY at this time.
       //if(abs(this_eta) > 1.479) continue;
       //endcap only at THIS time.
-      if(abs(this_eta) < 1.479) continue;
+      //if(abs(this_eta) < 1.479) continue;
 
       noselelidx.push_back(elidx);
 
@@ -172,13 +228,25 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
 
     // Event level selection on the electrons
     //pair<int,int> noselZwindels = inZwindow(noselelidx);
-    pair<int,int> noselZwindels = genMatch(noselelidx);
-    if(noselZwindels.first!=-1) {
-      noselZwindelidx.push_back(noselZwindels.first);
+    //cout << "starting genMatch." << endl;
+    //pair<int,int> noselZwindels = genMatch(noselelidx, issig);
+    vector<int> noselZwindels = genMatch(noselelidx, issig, deta_all, qdphi_all, deta_gmd, qdphi_gmd);
+    for(int matched_el : noselZwindels) {
+        noselZwindelidx.push_back(matched_el);
     }
-    if(noselZwindels.second != -1) {
-      noselZwindelidx.push_back(noselZwindels.second);
-    }
+    //if(noselZwindels.first!=-1) {
+    //  noselZwindelidx.push_back(noselZwindels.first);
+    //}
+    //else {
+    //  noselZwindelidx.push_back(-1);
+    //}
+    //if(noselZwindels.second != -1) {
+    //  noselZwindelidx.push_back(noselZwindels.second);
+    //}
+    //else {
+    //  noselZwindelidx.push_back(-1);
+    //}
+    //cout << "done with genMatch." << endl;
     //if(noselZwindels.first == -1 || noselZwindels.second == -1) {
     //    cout << "*****WARNING: No genMatch found for event with the following electrons:*****" << endl;
     //    if(noselZwindels.first == -1) cout << "(first not found.)" << endl;
@@ -199,15 +267,26 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
     //now add all the other electrons (not in the Z window) to the notZwindow array.
     vector<int> notZwindelidx;
     for(auto elidx : noselelidx) {
-        if( elidx != noselZwindels.first && elidx != noselZwindels.second ){
+        bool isMatched = false;
+        //if( elidx != noselZwindels.first && elidx != noselZwindels.second ){
+        for(auto matchedidx : noselZwindels) {
+            if(elidx == matchedidx) {
+                isMatched = true;
+                break;
+            }
+        }
+        if(!isMatched) {
             notZwindelidx.push_back(elidx);
         }
     } //end loop over all electrons
 
     if(noselelidx.size()>0) nosel++;
     //fillhistinevent("nosel", noselelidx, hVe);
+    //cout << "starting fillhist." << endl;
     fillhistinevent("nosel", noselelidx, hVe, noselZwindelidx, notZwindelidx, all_sig, passed_sig, all_bkg, passed_bkg, old_passed_sig, old_passed_bkg);
-    if(noselZwindelidx.size()>0) noselZwind++;
+    //cout << "done with fillhistinevent." << endl;
+    //if(noselZwindelidx.size()>0) noselZwind++;
+    if(noselZwindelidx.size()>1 && (noselZwindelidx[0] > -1 || noselZwindelidx[1] > -1) ) noselZwind++;
     //fillhistinevent("noselZwind", noselZwindelidx, vector<TH2F*>(0), vector<int>(0));
 
     //bpgadding
@@ -228,6 +307,8 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
 
   cout<<totEntries<<"\t"<<endevent-beginevent<<"\t"<<nosel<<endl;
   cout << "Events with zero electrons: " << nZeroe << "; events with nonzero electrons: " << nNonzeroe << endl;
+  cout << "n gen electrons cut by isLast requirement: " << nLastCut << endl;
+  cout << "Number of gen matched electrons: " << ngm << "; Number of passing electrons: " << npassed << "; Noldpassing: " << noldpassed << endl;
 }
 
 // Function to fill a set of histograms for gen particles
@@ -293,8 +374,8 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
     }
 
     if(TMath::Abs((*ele_eta)->at(elidx[ctr]))<1.479) {
-      cout << "ERROR: barrel electrons still here!!!!!" << endl;
-      exit(0);
+      //cout << "ERROR: barrel electrons still here!!!!!" << endl;
+      //exit(0);
       barelpt->Fill((*ele_pt)->at(elidx[ctr]));
       barelm->Fill((*ele_m)->at(elidx[ctr]));
       bareld0->Fill((*ele_d0)->at(elidx[ctr]));
@@ -340,6 +421,8 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
   } // End of main electron for loop
   
   for(unsigned int ctr=0; ctr<elidx_gm.size(); ctr++) {
+    if(elidx_gm[ctr] == -1) continue;
+    ++ngm;
     vector<float> energyMatrix = (*ele_enemat)->at(elidx_gm[ctr]);
     float energy_sum = 0.;
     for(float engy : energyMatrix) {
@@ -348,37 +431,48 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
     //H is H/E * E
     float had_energy = energy_sum * (*ele_hoe)->at(elidx_gm[ctr]);
     if(hVe.size() > 0 && hVe[0] != 0) {
-        hVe[0]->Fill(had_energy, energy_sum);
+        hVe[0]->Fill(energy_sum, had_energy);
     }
     float Electron_pt = (*ele_pt)->at(elidx_gm[ctr]);
+    float genElectron_pt = (*genpart_pt)->at(ctr);
     if(hVe.size() > 1 && Electron_pt < 5) {
-        hVe[1]->Fill(had_energy, energy_sum);
+        hVe[1]->Fill(energy_sum, had_energy);
     }
     else if(hVe.size() > 2 && Electron_pt < 8) {
-        hVe[2]->Fill(had_energy, energy_sum);
+        hVe[2]->Fill(energy_sum, had_energy);
     }
     else if(hVe.size() > 3 && Electron_pt < 10) {
-        hVe[3]->Fill(had_energy, energy_sum);
+        hVe[3]->Fill(energy_sum, had_energy);
     }
     else if(hVe.size() > 4 && Electron_pt < 15) {
-        hVe[4]->Fill(had_energy, energy_sum);
+        hVe[4]->Fill(energy_sum, had_energy);
     }
     else if(hVe.size() > 5 && Electron_pt < 20) {
-        hVe[5]->Fill(had_energy, energy_sum);
+        hVe[5]->Fill(energy_sum, had_energy);
     }
     else if(hVe.size() > 6) {
-        hVe[6]->Fill(had_energy, energy_sum);
+        hVe[6]->Fill(energy_sum, had_energy);
+    }
+    if(hVe.size() > 7 && Electron_pt < 10) {
+        hVe[7]->Fill(energy_sum, had_energy);
     }
 
-    float newcut = 23 + 0.2*energy_sum;
+    //float newcut = 23 + 0.2*energy_sum;
+    float newcut = h0 + 0.2*energy_sum;
     if(had_energy < newcut) {
         //passed the cut
-        passed_sig->Fill(Electron_pt);
+        ++npassed;
+        passed_sig->Fill(genElectron_pt);
     }
+    else {
+        //cout << "failed the newcut! newcut = " << newcut << ", had_energy = " << had_energy << endl;
+    }
+
     if(had_energy / energy_sum < 0.2) {
-        old_passed_sig->Fill(Electron_pt);
+        old_passed_sig->Fill(genElectron_pt);
+        ++noldpassed;
     }
-    all_sig->Fill(Electron_pt);
+    all_sig->Fill(genElectron_pt);
     
   } //end genmatched electron loop
   //cout << "elidx_notgm size: " << elidx_notgm.size() << endl;
@@ -390,7 +484,7 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
     }
     //H is H/E * E
     float had_energy = energy_sum * (*ele_hoe)->at(elidx_notgm[ctr]);
-    float newcut = 23 + 0.2*energy_sum;
+    float newcut = h0 + 0.2*energy_sum;
     float Electron_pt = (*ele_pt)->at(elidx_notgm[ctr]);
     //cout << "notgenmatched " << ctr << ": E, H, pt: " << energy_sum << ", " << had_energy << ", " << Electron_pt << endl;
     if(had_energy < newcut) {
@@ -496,55 +590,138 @@ pair<int,int> data_robustanalyzer::inZwindow(vector<int> elidx) {
 void data_robustanalyzer::fillHoEvsPt(TH2F* hoevpt, vector<int> signalElectrons) {
    // TH2F* hoevpt = new TH2F("hoevspt", "H/E vs. #p_T", 1000, 0, 1000, 100, 0, 1.0);
     for(int j: signalElectrons) {
+        if(j == -1) continue;
         //cout << "Filling in electron pt and H/E: " << (*ele_pt)->at(j) << ", " << (*ele_hoe)->at(j) << endl;
         hoevpt->Fill((*ele_pt)->at(j), (*ele_hoe)->at(j), 1.0);
     }
 } //end fillHoEvsPt
 
 //find the best match for the gen particles
-pair<int,int> data_robustanalyzer::genMatch(vector<int> electronIdxs) {
+//pair<int,int> data_robustanalyzer::genMatch(vector<int> electronIdxs, bool domatch) {
+vector<int> data_robustanalyzer::genMatch(vector<int> electronIdxs, bool domatch, vector<TH1D*> deta_all, vector<TH1D*> qdphi_all, vector<TH1D*> deta_gmd, vector<TH1D*> qdphi_gmd) {
     //pair for the electrons matched to the gen electrons
-    pair<int,int> matchedPair;
-    matchedPair.first = -1;
-    matchedPair.second = -1;
+    //pair<int,int> matchedPair;
+    int nparts = (int)((*genpart_pt)->size());
+    int nele = (int)((*ele_pt)->size());
+    //cout << "ngenparts: " << nparts << ", nele: " << nele << endl;
+    vector<int> matchedPair(nparts, -1);
+    //matchedPair.first = -1;
+    //matchedPair.second = -1;
+    if(!domatch) return matchedPair;
     //first make sure we have the needed gen information
-    if((*genpart_pt)->size() != 2) {
-        cout << "Error: need exactly 2 gen particles but we have " << (*genpart_pt)->size() << endl;
-        //throw "NGenParticleError";
-        return matchedPair;
-    }
+    //if((*genpart_pt)->size() != 2) {
+    //    cout << "Error: need exactly 2 gen particles but we have " << (*genpart_pt)->size() << endl;
+    //    //throw "NGenParticleError";
+    //    return matchedPair;
+    //}
     //vector of (2) gen particles--
     //set each to -1 once it's matched to make sure we can't match to the same one twice!
-    vector<int> genParts(2);
-    genParts[0] = 0;
-    genParts[1] = 1;
+    vector<int> genParts(nparts, 0);
+    //genParts[0] = 0;
+    //genParts[1] = 1;
+    for(int j=0; j < nparts; j++) {
+        genParts[j] = j;
+    }
     for(int el : electronIdxs) {
         double my_eta = (*ele_eta)->at(el);
-        for(int gp = 0; gp < 2; gp++) {
+        //for(int gp = 0; gp < 2; gp++) {
+        for(int gp = 0; gp < nparts; gp++) {
+            //electrons only!!
+            if(abs((*genpart_pdg)->at(gp)) != 11) continue;
+            if(!(*genpart_isFinalState)->at(gp)) continue;
             if(genParts[gp] == -1) continue;
+            //cout << "el: " << el << "; gp: " << gp << endl;
             double diffeta = abs( my_eta - (*genpart_eta)->at(gp) );
             double diffphi = abs( (*ele_phi)->at(el) - (*genpart_phi)->at(gp));
+            //fill the deta before hist
+            deta_all[0]->Fill(diffeta);
+            
             TLorentzVector vec_el, vec_gen;
             vec_gen.SetPtEtaPhiM((*genpart_pt)->at(gp),(*genpart_eta)->at(gp),(*genpart_phi)->at(gp),0.000511);
             vec_el.SetPtEtaPhiM((*ele_pt)->at(el),(*ele_eta)->at(el),(*ele_phi)->at(el),0.000511);
-            double qdiffphi = ((*genpart_pdg)->at(gp)/(*genpart_pdg)->at(gp))*(vec_gen.DeltaPhi(vec_el));
-        
+            double qdiffphi = ((*genpart_pdg)->at(gp)/fabs((*genpart_pdg)->at(gp)))*(vec_gen.DeltaPhi(vec_el));
+            float pt = (*genpart_pt)->at(gp);
+            //fill the dphi before hist
+            qdphi_all[0]->Fill(qdiffphi); 
+            if(pt>=2 && pt <= 5){
+                deta_all[1]->Fill(diffeta);
+                qdphi_all[1]->Fill(qdiffphi);
+            }
+            else if(pt > 5 && pt <= 8) { 
+                deta_all[2]->Fill(diffeta);
+                qdphi_all[2]->Fill(qdiffphi);
+            }
+            else if(pt > 8 && pt <= 10) {
+                deta_all[3]->Fill(diffeta);
+                qdphi_all[3]->Fill(qdiffphi);
+            }
+            else if(pt > 10 && pt <= 15) { 
+                deta_all[4]->Fill(diffeta);
+                qdphi_all[4]->Fill(qdiffphi);
+            }
+            else if(pt > 15 && pt <= 20){
+                deta_all[5]->Fill(diffeta);
+                qdphi_all[5]->Fill(qdiffphi);
+            }
+            else {
+                //cout << "super big pt: " << pt << endl;
+                deta_all[6]->Fill(diffeta);
+                qdphi_all[6]->Fill(qdiffphi);
+            }
+            //cout << "pt: " << pt << endl;
+            bool foundMatch = false;
             if( abs(my_eta) < 1.479 ) {
-                if(diffeta<0.1 && qdiffphi<0.15 && qdiffphi>-0.25) {
-                    if(gp == 0) matchedPair.first = el;
-                    else matchedPair.second = el;
-                    genParts[gp] = -1; 
+                //if(diffeta<0.1 && qdiffphi<0.15 && qdiffphi>-0.25) {
+                //new cutoffs
+                if(diffeta<0.2 && qdiffphi<0.05 && qdiffphi>-0.3) {
+                    foundMatch = true;
                 } //end found match 
             } //end central eta region
             else {
-                if(diffeta<0.05 && qdiffphi<0.1 && qdiffphi>-0.15) {
-                    if(gp == 0) matchedPair.first = el;
-                    else matchedPair.second = el;
-                    genParts[gp] = -1;  
+                //if(diffeta<0.05 && qdiffphi<0.1 && qdiffphi>-0.15) {
+                //new cutoffs
+                if(diffeta<0.1 && qdiffphi<0.05 && qdiffphi>-0.2) {
+                    foundMatch = true;
                 } //end found match
             } //end not central eta region
+            if(foundMatch) {
+                //if(gp == 0) matchedPair.first = el;
+                //else matchedPair.second = el;
+                matchedPair[gp] = el;
+                genParts[gp] = -1; 
+                //fill the genmatched deta, qdphi hists
+                deta_gmd[0]->Fill(diffeta);
+                qdphi_gmd[0]->Fill(qdiffphi);
+                if(pt>=2 && pt <= 5){
+                    deta_gmd[1]->Fill(diffeta);
+                    qdphi_gmd[1]->Fill(qdiffphi);
+                }
+                else if(pt > 5 && pt <= 8) { 
+                    deta_gmd[2]->Fill(diffeta);
+                    qdphi_gmd[2]->Fill(qdiffphi);
+                }
+                else if(pt > 8 && pt <= 10) {
+                    deta_gmd[3]->Fill(diffeta);
+                    qdphi_gmd[3]->Fill(qdiffphi);
+                }
+                else if(pt > 10 && pt <= 15) { 
+                    deta_gmd[4]->Fill(diffeta);
+                    qdphi_gmd[4]->Fill(qdiffphi);
+                }
+                else if(pt > 15 && pt <= 20){
+                    deta_gmd[5]->Fill(diffeta);
+                    qdphi_gmd[5]->Fill(qdiffphi);
+                }
+                else {
+                    deta_gmd[6]->Fill(diffeta);
+                    qdphi_gmd[6]->Fill(qdiffphi);
+                }
+            } //end foundMatch
         } //end loop over (2) gen particles
     } //end electrons loop
+    //cout << "ngen: " << nparts << ", matched: ";
+    //for(int j : matchedPair) cout << j << ", ";
+    //cout << endl;
     return matchedPair;
 } //end genMatch function
 
