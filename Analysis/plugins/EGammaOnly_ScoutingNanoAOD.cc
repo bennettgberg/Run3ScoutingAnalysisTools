@@ -447,6 +447,7 @@ void EGammaOnly_ScoutingNanoAOD::clearVars(){
   genpart_vz.clear();
   genpart_nmoms.clear();
   genpart_mompdg.clear();
+  genpart_fromHardProcessBeforeFSR.clear();
   genpart_isPromptFS.clear();
   genpart_isPromptDec.clear();
   genpart_isDirectPromptTauDecayProdFS.clear();
