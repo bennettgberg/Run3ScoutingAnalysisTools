@@ -3,13 +3,16 @@ g++ robustanalyzermain.C data_robustanalyzer.C `root-config --cflags --glibs` -o
 
 echo "Compiling successful. Begin execution."
 
-#outname="DoubleElectronGun"
-#DYToLLM50_ScoutingSkim220404_0_18.root
-#outname="DYToLLM50_ScoutingSkim220404"
-#outname="DoubleElectron_ScoutingSkim220411"
-#outname="DoubleElectron_ScoutingSkim220517"
+##outname="DoubleElectronGun"
+##DYToLLM50_ScoutingSkim220404_0_18.root
+##outname="DYToLLM50_ScoutingSkim220404"
+##outname="DoubleElectron_ScoutingSkim220411"
+
+outname="DoubleElectron_ScoutingSkim220517"
 #outname="QCD_ScoutingSkim220510"
-outname='DYToLL_ScoutingSkim220510'
+#outname='DYToLL_ScoutingSkim220510'
+#outname='DYToLL_ScoutingSkim220712'
+#outname='DYToLL_ScoutingSkim220712MODIF'
 
 #how many processing cores are available to us
 nproc=6

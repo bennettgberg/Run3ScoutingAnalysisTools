@@ -19,13 +19,13 @@ class data_robustanalyzer {
   
   void analyzersinglefile(int);
   void addhist(TString);
-  void fillhistinevent(TString, vector<int>, vector<TH2F*>, vector<int>, vector<int>, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*);
+  void fillhistinevent(TString, vector<int>, vector<TH2F*>, vector<int>, vector<int>, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*);
   void sort(int*, TTreeReaderValue<std::vector<float>> *, int);
   pair<int,int> inZwindow(vector<int>);
   //bpg adding
   void fillHoEvsPt(TH2F* hoevspt, vector<int> signalElectrons);
   //pair<int,int> genMatch(vector<int>, bool);
-  vector<int> genMatch(vector<int>, bool, vector<TH1D*>, vector<TH1D*>, vector<TH1D*>, vector<TH1D*>);
+  vector<int> genMatch(vector<int>, bool, vector<TH1D*>, vector<TH1D*>, vector<TH1D*>, vector<TH1D*>, TH1F*, TH1F*, TH1F*);
   
  private:
 
@@ -39,7 +39,7 @@ class data_robustanalyzer {
   TTreeReaderValue<vector<float>> *ele_pt;
   TTreeReaderValue<vector<float>> *ele_eta;
   TTreeReaderValue<vector<float>> *ele_phi;
-  TTreeReaderValue<vector<float>> *ele_m;
+  //TTreeReaderValue<vector<float>> *ele_m;
   TTreeReaderValue<vector<float>> *ele_d0;
   TTreeReaderValue<vector<float>> *ele_dz;
   TTreeReaderValue<vector<float>> *ele_detain;

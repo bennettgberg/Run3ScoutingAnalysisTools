@@ -9,13 +9,14 @@
 
 using namespace std;
 
-const float h0 = 7.; // 2.; //16.;
-const bool issig = true; //false;
+const float h0 = 2.; //16.;
+//set issig to false to skip genMatching (only bkg will have the data).
+const bool issig = true; // false;
 int ngm = 0;
 int npassed = 0;
 int noldpassed = 0;
 //true for ElectronGun, false for real simulations like DY
-bool isGun = false;
+bool isGun = true;
 // Initialize and open the root file in the constructor
 data_robustanalyzer::data_robustanalyzer(TString filename, TString outfilename, bool isDoubleElectron){
 
@@ -32,7 +33,7 @@ data_robustanalyzer::data_robustanalyzer(TString filename, TString outfilename, 
   ele_pt = new TTreeReaderValue<vector<float>>((*tree), "Electron_pt");
   ele_eta = new TTreeReaderValue<vector<float>>((*tree), "Electron_eta");
   ele_phi = new TTreeReaderValue<vector<float>>((*tree), "Electron_phi");
-  ele_m = new TTreeReaderValue<vector<float>>((*tree), "Electron_m");
+//  ele_m = new TTreeReaderValue<vector<float>>((*tree), "Electron_m");
   ele_d0 = new TTreeReaderValue<vector<float>>((*tree), "Electron_d0");
   ele_dz = new TTreeReaderValue<vector<float>>((*tree), "Electron_dz");
   ele_detain = new TTreeReaderValue<vector<float>>((*tree), "Electron_detain");
@@ -59,7 +60,7 @@ data_robustanalyzer::data_robustanalyzer(TString filename, TString outfilename, 
   genpart_pdg = new TTreeReaderValue<vector<int>>((*tree), "genpart_pdg");
 
   //need this for real (DY) samples, but NOT for gun samples
-  if(isGun) {
+  if(!isGun) {
       genpart_isFinalState = new TTreeReaderValue<vector<bool>>((*tree), "genpart_fromHardProcessFS");
   }
   else {
@@ -106,11 +107,42 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
   vector<int> noselZwindelidx;
   
   //make 2D plot to compare H/E agains pt of electrons in the Z window.
-  TH2F* hoevpt = new TH2F("hoevspt", "H/E vs. #p_T for genmatched e-s", 1000, 0, 10, 4000, 0, 4.0);
-  TH2F* hoevptBkg = new TH2F("hoevsptBkg", "H/E vs. #p_T for e-s NOT genmatched", 1000, 0, 10, 4000, 0, 4.0);
+  TH2F* hoevpt = new TH2F("hoevspt", "H/E vs. p_T for genmatched e^-s", 1000, 0, 10, 4000, 0, 4.0);
+  TH2F* hoevptBkg = new TH2F("hoevsptBkg", "H/E vs. p_T for e^-s NOT genmatched", 1000, 0, 10, 4000, 0, 4.0);
   //hists for efficiency as function of pT
     //all gen electrons
   TH1F* all_gen = new TH1F("allgen", "", 500, 0., 50.);
+    //gen electrons in the middle barrel region
+  TH1F* mid_gen = new TH1F("midgen", "", 500, 0., 50.);
+    //gen electrons in the outer barrel region
+  TH1F* out_gen = new TH1F("outgen", "", 500, 0., 50.);
+    //gen electrons in the endcaps
+  TH1F* ecs_gen = new TH1F("ecsgen", "", 500, 0., 50.);
+    //all scouting electrons
+  TH1F* all_sct = new TH1F("allsct", "", 500, 0., 50.);
+    //all scouting electrons that pass the new cut
+  TH1F* pass_sct = new TH1F("passsct", "", 500, 0., 50.);
+    //all scouting electrons that pass the old cut
+  TH1F* oldpass_sct = new TH1F("oldpasssct", "", 500, 0., 50.);
+    //lead scouting electron only (all)
+  TH1F* alllead_sct = new TH1F("allleadsct", "", 500, 0., 50.);
+    //lead scouting electron only (passing new cut)
+  TH1F* passlead_sct = new TH1F("passleadsct", "", 500, 0., 50.);
+    //lead scouting electron only (passing old cut)
+  TH1F* oldpasslead_sct = new TH1F("oldpassleadsct", "", 500, 0., 50.);
+    //resolution=gen pt - scouting pt
+  TH1F* pt_res_sct = new TH1F("ptressct", "", 1000, -50., 50.);
+    //ptratio = (scouting e pt) / (gen e pt)
+  //TH1F* pt_ratio_sctgen = new TH1F("ptratiosctgen", "", 200, 0., 2.);
+  TH1F* e_ratio_sctgen = new TH1F("eratiosctgen", "", 200, 0., 2.);
+    //energy ratio, except only for electrons with pt < 20
+  TH1F* e_ratio_sctgenl20 = new TH1F("eratiosctgenl20", "", 200, 0., 2.);
+    //scouting electrons in the middle region (|eta|<1)
+  TH1F* mid_sct = new TH1F("midsct", "", 500, 0., 50.);
+    //scouting electrons in the outer barrel (1<|eta|<1.479)
+  TH1F* out_sct = new TH1F("outsct", "", 500, 0., 50.);
+    //scouting electrons in the endcaps (|eta|>1.479)
+  TH1F* ecs_sct = new TH1F("ecssct", "", 500, 0., 50.);
     //all gen-matched electrons
   TH1F* all_sig = new TH1F("allsig", "", 500, 0., 50.);
     //gen-matched electrons passing the new H/E cut
@@ -127,6 +159,19 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
   TH1D* n_gen_ele = new TH1D("ngenele", "", 15, 0, 15);
   TH1D* n_reco_ele = new TH1D("nrecoele", "", 15, 0, 15);
 
+  //now hists as function of eta instead of pt
+    //gen electrons
+  TH1F* eta_gen = new TH1F("etagen", "", 2000, -10.0, 10.);
+    //all scouting electrons
+  TH1F* eta_sct = new TH1F("etasct", "", 2000, -10.0, 10.);
+    //all genmatched scouting electrons
+  TH1F* eta_sig = new TH1F("etasig", "", 2000, -10.0, 10.);
+    //all non-genmatched scouting electrons
+  TH1F* eta_bkg = new TH1F("etabkg", "", 2000, -10.0, 10.);
+    //gen-matched scouting electrons passing old H/E<0.2 cut
+  TH1F* eta_old_passed_sig = new TH1F("etaoldpassedsig", "", 2000, -10.0, 10.);
+   //gen-matched scouting electrons passing new H<0.2E+p_1 cut
+  TH1F* eta_new_passed_sig = new TH1F("etanewpassedsig", "", 2000, -10.0, 10.);
   //vector of TH2 plots comparing H and E
   // plot 0 is all pt, plot 1 is 2<pt<5, plot2 is 5<pt<8, plot3 is 8<pt<10 GeV.
   //hVe0: all
@@ -187,9 +232,13 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
     //fill in the gen electrons histogram
     //for(unsigned int genctr=0; genctr < (*genpart_pt)->size(); genctr++) {
     for(unsigned int genctr=0; genctr < *(*n_genpart); genctr++) {
-        //fill only electrons! AND only if is in final state!
-        if(abs((*genpart_pdg)->at(genctr)) == 11 && (*genpart_isFinalState)->at(genctr)) {
-            all_gen->Fill( (*genpart_pt)->at(genctr) );
+        //fill only electrons! AND only if is in final state! AND within the ECAL!
+        float gen_eta = (*genpart_eta)->at(genctr);
+        //ALSO going to exclude the EB/EE gap region, where reconstruction efficiency is low.
+        if(abs((*genpart_pdg)->at(genctr)) == 11 && (*genpart_isFinalState)->at(genctr) && fabs(gen_eta) < 2.5 && !(fabs(gen_eta) > 1.44 && fabs(gen_eta)<1.56)) {
+            float gen_pt = (*genpart_pt)->at(genctr);
+            all_gen->Fill(gen_pt);
+            eta_gen->Fill(gen_eta);
             ngenele++;
         }
         else {
@@ -230,7 +279,7 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
     //pair<int,int> noselZwindels = inZwindow(noselelidx);
     //cout << "starting genMatch." << endl;
     //pair<int,int> noselZwindels = genMatch(noselelidx, issig);
-    vector<int> noselZwindels = genMatch(noselelidx, issig, deta_all, qdphi_all, deta_gmd, qdphi_gmd);
+    vector<int> noselZwindels = genMatch(noselelidx, issig, deta_all, qdphi_all, deta_gmd, qdphi_gmd, pt_res_sct, e_ratio_sctgen, e_ratio_sctgenl20);
     for(int matched_el : noselZwindels) {
         noselZwindelidx.push_back(matched_el);
     }
@@ -283,7 +332,7 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
     if(noselelidx.size()>0) nosel++;
     //fillhistinevent("nosel", noselelidx, hVe);
     //cout << "starting fillhist." << endl;
-    fillhistinevent("nosel", noselelidx, hVe, noselZwindelidx, notZwindelidx, all_sig, passed_sig, all_bkg, passed_bkg, old_passed_sig, old_passed_bkg);
+    fillhistinevent("nosel", noselelidx, hVe, noselZwindelidx, notZwindelidx, all_sig, all_sct, mid_sct, out_sct, ecs_sct, passed_sig, all_bkg, passed_bkg, old_passed_sig, old_passed_bkg, eta_sig, eta_old_passed_sig, eta_new_passed_sig, eta_sct, eta_bkg, mid_gen, out_gen, ecs_gen, pass_sct, oldpass_sct, alllead_sct, passlead_sct, oldpasslead_sct);
     //cout << "done with fillhistinevent." << endl;
     //if(noselZwindelidx.size()>0) noselZwind++;
     if(noselZwindelidx.size()>1 && (noselZwindelidx[0] > -1 || noselZwindelidx[1] > -1) ) noselZwind++;
@@ -312,18 +361,28 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
 }
 
 // Function to fill a set of histograms for gen particles
-void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, vector<TH2F*> hVe, vector<int> elidx_gm, vector<int> elidx_notgm, TH1F* all_sig, TH1F* passed_sig, TH1F* all_bkg, TH1F* passed_bkg, TH1F* old_passed_sig, TH1F* old_passed_bkg) {
+void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, vector<TH2F*> hVe, vector<int> elidx_gm, vector<int> elidx_notgm, TH1F* all_sig, TH1F* all_sct, TH1F* mid_sct, TH1F* out_sct, TH1F* ecs_sct, TH1F* passed_sig, TH1F* all_bkg, TH1F* passed_bkg, TH1F* old_passed_sig, TH1F* old_passed_bkg, TH1F* eta_sig, TH1F* eta_old_passed_sig, TH1F* eta_new_passed_sig, TH1F* eta_sct, TH1F* eta_bkg, TH1F* mid_gen, TH1F* out_gen, TH1F* ecs_gen, TH1F* pass_sct, TH1F* oldpass_sct, TH1F* alllead_sct, TH1F* passlead_sct, TH1F* oldpasslead_sct) {
 
   if(elidx.size()==0) return;
 
+  int npassedevt = 0;
+  int noldpassedevt = 0;
+  int ngmevt = 0;
+
   TH1F* elmult = (TH1F*) outfile->Get(selection+"sct_elmult");
+  //new plots for comparing el multiplicities
+  TH1F* elmult_gm = (TH1F*) outfile->Get(selection+"sct_elmult_gm");
+  //for these include ALL scouting electrons, not just the ones that are genmatched
+  TH1F* elmult_passed = (TH1F*) outfile->Get(selection+"sct_elmult_passed");
+  TH1F* elmult_oldpassed = (TH1F*) outfile->Get(selection+"sct_elmult_oldpassed");
+  //
   TH1F* elpt = (TH1F*) outfile->Get(selection+"sct_elpt");
   TH1F* eleta = (TH1F*) outfile->Get(selection+"sct_eleta");
   TH1F* elphi = (TH1F*) outfile->Get(selection+"sct_elphi");
   TH1F* dielM = (TH1F*) outfile->Get(selection+"sct_dielM");
   
   TH1F* barelpt = (TH1F*) outfile->Get(selection+"sctbar_elpt");
-  TH1F* barelm = (TH1F*) outfile->Get(selection+"sctbar_elm");
+  //TH1F* barelm = (TH1F*) outfile->Get(selection+"sctbar_elm");
   TH1F* bareld0 = (TH1F*) outfile->Get(selection+"sctbar_eld0");
   TH1F* barellog10d0 = (TH1F*) outfile->Get(selection+"sctbar_ellog10d0");
   TH1F* bareldz = (TH1F*) outfile->Get(selection+"sctbar_eldz");
@@ -362,10 +421,49 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
 
 
   elmult->Fill(elidx.size());
+    //highest pt amongst all scouting electrons in this evt
+  float lead_pt = 0.0;
+    //highest pt amongst'd all scouting electrons passing the new cut in this event
+  float passlead_pt = 0.0;
+    //highest pt amongst'd've all scouting electrons whomst'd've passed the old cut in this event
+  float oldpasslead_pt = 0.0;
   for(unsigned int ctr=0; ctr<elidx.size(); ctr++) {
-    elpt->Fill((*ele_pt)->at(elidx[ctr]));
-    eleta->Fill((*ele_eta)->at(elidx[ctr]));
+    float this_eta = (*ele_eta)->at(elidx[ctr]);
+    float this_pt = (*ele_pt)->at(elidx[ctr]);
+    elpt->Fill(this_pt);
+    //update leading pt
+    lead_pt = this_pt>lead_pt? this_pt : lead_pt;
+    eleta->Fill(this_eta);
     elphi->Fill((*ele_phi)->at(elidx[ctr]));
+    //fill the histogram for all scouting electrons (regardless if genmatched or nah) as a function of eta 
+    all_sct->Fill(this_pt);  
+    eta_sct->Fill(this_eta); 
+    //get energy of the electron (deposited in the ECAL)
+    vector<float> energyMatrix = (*ele_enemat)->at(elidx[ctr]);
+    float energy_sum = 0.;
+    for(float engy : energyMatrix) {
+        energy_sum += engy;
+    }
+    float had_energy = energy_sum * (*ele_hoe)->at(elidx[ctr]);
+    //see if it passes the old/new cut
+    if( had_energy / energy_sum < 0.2) {
+        oldpass_sct->Fill(this_pt);
+        oldpasslead_pt = this_pt>oldpasslead_pt? this_pt : oldpasslead_pt;
+    }
+    if( had_energy < 0.2*energy_sum + h0 ) {
+        pass_sct->Fill(this_pt);
+        passlead_pt = this_pt>passlead_pt? this_pt : oldpasslead_pt;
+    }
+    //fill these histos with energy (not pt)
+    if( fabs(this_eta) < 1 ) {
+        mid_sct->Fill(energy_sum);
+    }
+    else if( fabs(this_eta) < 1.479) {
+        out_sct->Fill(energy_sum);
+    }
+    else {
+        ecs_sct->Fill(energy_sum);
+    }
     for(unsigned int ctr2=ctr+1; ctr2<elidx.size(); ctr2++) {
       TLorentzVector el, el2;
       el.SetPtEtaPhiM((*ele_pt)->at(elidx[ctr]),(*ele_eta)->at(elidx[ctr]),(*ele_phi)->at(elidx[ctr]),0.0005);
@@ -377,7 +475,7 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
       //cout << "ERROR: barrel electrons still here!!!!!" << endl;
       //exit(0);
       barelpt->Fill((*ele_pt)->at(elidx[ctr]));
-      barelm->Fill((*ele_m)->at(elidx[ctr]));
+      //barelm->Fill((*ele_m)->at(elidx[ctr]));
       bareld0->Fill((*ele_d0)->at(elidx[ctr]));
       barellog10d0->Fill(TMath::Log10(TMath::Abs((*ele_d0)->at(elidx[ctr]))));
       bareldz->Fill((*ele_dz)->at(elidx[ctr]));
@@ -400,7 +498,7 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
       //cout << "ERROR: endcap electrons still here!!!!!" << endl;
       //exit(0);
       ecelpt->Fill((*ele_pt)->at(elidx[ctr]));
-      ecelm->Fill((*ele_m)->at(elidx[ctr]));
+      //ecelm->Fill((*ele_m)->at(elidx[ctr]));
       eceld0->Fill((*ele_d0)->at(elidx[ctr]));
       ecellog10d0->Fill(TMath::Log10(TMath::Abs((*ele_d0)->at(elidx[ctr]))));
       eceldz->Fill((*ele_dz)->at(elidx[ctr]));
@@ -419,10 +517,20 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
       ecelsmaj->Fill((*ele_smaj)->at(elidx[ctr]));
     }
   } // End of main electron for loop
+  alllead_sct->Fill(lead_pt);
+  oldpasslead_sct->Fill(oldpasslead_pt);
+  passlead_sct->Fill(passlead_pt);
   
+//eta_sig, eta_old_passed_sig, eta_new_passed_sig, eta_sct, eta_bkg
   for(unsigned int ctr=0; ctr<elidx_gm.size(); ctr++) {
     if(elidx_gm[ctr] == -1) continue;
+    float gen_eta = (*ele_eta)->at(elidx_gm[ctr]);
+    //exclude electrons in the low-efficiency region b/t EB and EE.
+    if(fabs(gen_eta) > 1.44 && fabs(gen_eta) < 1.56) {
+        continue;
+    }
     ++ngm;
+    ++ngmevt;
     vector<float> energyMatrix = (*ele_enemat)->at(elidx_gm[ctr]);
     float energy_sum = 0.;
     for(float engy : energyMatrix) {
@@ -462,7 +570,9 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
     if(had_energy < newcut) {
         //passed the cut
         ++npassed;
+        ++npassedevt;
         passed_sig->Fill(genElectron_pt);
+        eta_new_passed_sig->Fill(gen_eta);
     }
     else {
         //cout << "failed the newcut! newcut = " << newcut << ", had_energy = " << had_energy << endl;
@@ -470,13 +580,31 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
 
     if(had_energy / energy_sum < 0.2) {
         old_passed_sig->Fill(genElectron_pt);
+        eta_old_passed_sig->Fill(gen_eta);
         ++noldpassed;
+        ++noldpassedevt;
     }
     all_sig->Fill(genElectron_pt);
+    eta_sig->Fill(gen_eta);
     
+    float sct_eta = (*ele_eta)->at(elidx_gm[ctr]);
+    if( fabs(sct_eta) < 1 ) {
+        mid_gen->Fill(genElectron_pt);
+    }
+    else if( fabs(sct_eta) < 1.479) {
+        out_gen->Fill(genElectron_pt);
+    }
+    else {
+        ecs_gen->Fill(genElectron_pt);
+    }
   } //end genmatched electron loop
   //cout << "elidx_notgm size: " << elidx_notgm.size() << endl;
   for(unsigned int ctr=0; ctr<elidx_notgm.size(); ctr++) {
+    float gen_eta = (*ele_eta)->at(elidx_notgm[ctr]);
+    //exclude electrons in the low-efficiency region b/t EB,EE
+    if(fabs(gen_eta) > 1.44 && fabs(gen_eta) < 1.56) {
+        continue;
+    }
     vector<float> energyMatrix = (*ele_enemat)->at(elidx_notgm[ctr]);
     float energy_sum = 0.;
     for(float engy : energyMatrix) {
@@ -490,12 +618,19 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
     if(had_energy < newcut) {
         //passed the cut
         passed_bkg->Fill(Electron_pt);
+        npassedevt++;
     }
     if(had_energy / energy_sum < 0.2) {
         old_passed_bkg->Fill(Electron_pt);
+        noldpassedevt++;
     }
     all_bkg->Fill(Electron_pt);
-  } //end notgenmatched electron loop
+    eta_bkg->Fill(gen_eta);
+  } //end notgenmatched electron loop 
+
+  elmult_gm->Fill(ngmevt);
+  elmult_passed->Fill(npassedevt);
+  elmult_oldpassed->Fill(noldpassedevt);
   
 }  
 
@@ -503,6 +638,11 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
 void data_robustanalyzer::addhist(TString selection) {
 
   all1dhists.push_back(new TH1F(selection+"sct_elmult","N e",50,-5,45));
+  //new hists
+  all1dhists.push_back(new TH1F(selection+"sct_elmult_gm","N e",50,-5,45));
+  all1dhists.push_back(new TH1F(selection+"sct_elmult_passed","N e",50,-5,45));
+  all1dhists.push_back(new TH1F(selection+"sct_elmult_oldpassed","N e",50,-5,45));
+  //
   all1dhists.push_back(new TH1F(selection+"sct_elpt","p_{T} / GeV",1000,-10,990));
   all1dhists.push_back(new TH1F(selection+"sct_eleta","#eta",600,-3,3));
   all1dhists.push_back(new TH1F(selection+"sct_elphi","#phi",66,-3.3,3.3));
@@ -598,7 +738,7 @@ void data_robustanalyzer::fillHoEvsPt(TH2F* hoevpt, vector<int> signalElectrons)
 
 //find the best match for the gen particles
 //pair<int,int> data_robustanalyzer::genMatch(vector<int> electronIdxs, bool domatch) {
-vector<int> data_robustanalyzer::genMatch(vector<int> electronIdxs, bool domatch, vector<TH1D*> deta_all, vector<TH1D*> qdphi_all, vector<TH1D*> deta_gmd, vector<TH1D*> qdphi_gmd) {
+vector<int> data_robustanalyzer::genMatch(vector<int> electronIdxs, bool domatch, vector<TH1D*> deta_all, vector<TH1D*> qdphi_all, vector<TH1D*> deta_gmd, vector<TH1D*> qdphi_gmd, TH1F* pt_res_sct, TH1F* e_ratio_sctgen, TH1F* e_ratio_sctgenl20) {
     //pair for the electrons matched to the gen electrons
     //pair<int,int> matchedPair;
     int nparts = (int)((*genpart_pt)->size());
@@ -685,6 +825,7 @@ vector<int> data_robustanalyzer::genMatch(vector<int> electronIdxs, bool domatch
                 } //end found match
             } //end not central eta region
             if(foundMatch) {
+                //cout << "found match!" << endl;
                 //if(gp == 0) matchedPair.first = el;
                 //else matchedPair.second = el;
                 matchedPair[gp] = el;
@@ -715,6 +856,28 @@ vector<int> data_robustanalyzer::genMatch(vector<int> electronIdxs, bool domatch
                 else {
                     deta_gmd[6]->Fill(diffeta);
                     qdphi_gmd[6]->Fill(qdiffphi);
+                }
+                //fill the pt resolution histogram
+                //cout << "filling the ptres hist." << endl;
+                float pt_res = (*ele_pt)->at(el) - pt;
+                pt_res_sct->Fill(pt_res);
+                //now find the energy ratio
+                vector<float> energyMatrix = (*ele_enemat)->at(el);
+                float energy_sum = 0.;
+                for(float engy : energyMatrix) {
+                    energy_sum += engy;
+                }
+                TLorentzVector gen4vec;
+                gen4vec.SetPtEtaPhiM( (*genpart_pt)->at(gp), (*genpart_eta)->at(gp), (*genpart_phi)->at(gp), 0.511 );
+                float gen_energy = gen4vec.Energy();
+                //float pt_ratio = (*ele_pt)->at(el) / pt;
+                float e_ratio = energy_sum / gen_energy;
+                //pt_ratio_sctgen->Fill(pt_ratio);
+                e_ratio_sctgen->Fill(e_ratio);
+                //ONLY fill the l20 if the pt of the (gen) electron is < 20 GeV!! (DoubleElectronGun pT goes too high).
+                //if(pt < 20) {
+                if(pt < 20) {
+                    e_ratio_sctgenl20->Fill(e_ratio);
                 }
             } //end foundMatch
         } //end loop over (2) gen particles
