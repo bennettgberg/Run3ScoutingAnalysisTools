@@ -24,7 +24,8 @@ request_disk = 2048MB
 
 arguments = $(PROCESS) $(Proxy_path)
 #queue 10
-queue 1
+#queue 1
+queue 7
 #queue 37
 #queue 242
 #queue 43

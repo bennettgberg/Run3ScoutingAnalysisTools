@@ -1,7 +1,8 @@
 #!/bin/bash
 #cd /user/asahasra/CMSSW_12_1_0_pre4/src/
 #cd /afs/cern.ch/work/b/bgreenbe/public/CMSSW_12_3_0_pre6/src/
-cd /afs/cern.ch/work/b/bgreenbe/public/CMSSW_12_3_2/src/
+#cd /afs/cern.ch/work/b/bgreenbe/public/CMSSW_12_3_2/src/
+cd /afs/cern.ch/work/b/bgreenbe/public/CMSSW_12_4_1/src/
 eval `scram runtime -sh`
 
 cd ./Run3ScoutingAnalysisTools/Analysis/test
@@ -17,8 +18,12 @@ voms-proxy-info -all -file /afs/cern.ch/user/b/bgreenbe/x509up_u104084
 #testname="DoubleElectron_ScoutingSkim220410"
 #testname="DoubleElectron_ScoutingSkim220411"
 #testname="DoubleElectron_ScoutingSkim220517"
-testname="QCD_ScoutingSkim220510"
+#testname="QCD_ScoutingSkim220510"
 #testname="DYToLL_ScoutingSkim220510"
+#testname="DYToLL_ScoutingSkim220712"
+#testname="DYToLL_ScoutingSkim220712MODIF"
+#testname="EtaTo2Mu2E_ScoutingSkim220729"
+testname="BuToKee_ScoutingSkim220816"
 #mkdir -p /eos/user/b/bgreenbe/scouting/ntuples/$testname
 jobnum=$1
 echo "script number $jobnum"
@@ -45,8 +50,13 @@ do
     dirnum=$(( num / 1000 ))
     #fulldir="/eos/user/b/bgreenbe/scouting/DoubleElectron_Pt-1To300-gun/ScoutingSkim220409_DoubleElectronGunRun3Summer21_bgreenbe/220408_150915/000$dirnum"
     #fulldir="/eos/user/b/bgreenbe/scouting/DoubleElectron_Pt-1To300-gun/ScoutingSkim220517_DoubleElectron_bgreenbe/220517_143258/000$dirnum"
-    fulldir="/eos/user/b/bgreenbe/scouting/QCD_Pt-20To30_EMEnriched_TuneCP5_14TeV-pythia8/ScoutingSkim220510_QCDPt20-30_bgreenbe/220510_212445/000$dirnum"
+    #fulldir="/eos/user/b/bgreenbe/scouting/QCD_Pt-20To30_EMEnriched_TuneCP5_14TeV-pythia8/ScoutingSkim220510_QCDPt20-30_bgreenbe/220510_212445/000$dirnum"
     #fulldir="/eos/user/b/bgreenbe/scouting/DYToLL_M-4To50_TuneCP5_14TeV-pythia8/ScoutingSkim220510_DYToLL_bgreenbe/220510_161328/000$dirnum"
+    #fulldir="/eos/user/b/bgreenbe/scouting/DYToLL_M-4To50_TuneCP5_14TeV-pythia8/ScoutingSkim220712_DYToLL_bgreenbe/220712_141526/000$dirnum"
+    #fulldir="/eos/user/b/bgreenbe/scouting/DYToLL_M-4To50_TuneCP5_14TeV-pythia8/ScoutingSkim220712MODIF_DYToLL_bgreenbe/220713_171519/000$dirnum"
+    #fulldir="/eos/user/b/bgreenbe/scouting/CRAB_UserFiles/EtaTo2Mu2E_test0_bgreenbe/220727_100214/000$dirnum"
+    #fulldir="/eos/user/b/bgreenbe/scouting/CRAB_UserFiles/ScoutingSkim220729_EtaTo2Mu2E_bgreenbe/220729_093131/000$dirnum"
+    fulldir="/eos/user/b/bgreenbe/scouting/BuToKee_SoftQCDnonD_TuneCP5_14TeV-pythia8-evtgen/ScoutingSkim220816_BuToKee_bgreenbe/220816_085359/000$dirnum"
     #fulldir="/eos/user/b/bgreenbe/scouting/QCD_Pt-20To30_EMEnriched_TuneCP5_14TeV-pythia8/ScoutingSkim220429_QCDPt20To30_bgreenbe/220429_000456/000$dirnum"
     #fulldir="/store/user/asahasra/QCD_Pt-20To30_EMEnriched_TuneCP5_14TeV-pythia8/ScoutingSkim220127_QCDPt20To30EmEnrichedRun3Summer21_asahasra/220128_130326/0000/"
     #fulldir="/store/user/asahasra/QCD_Pt-20To30_EMEnriched_TuneCP5_14TeV-pythia8/ScoutingSkim220329_QCDPt20To30EmEnrichedRun3Summer21_asahasra/220330_115058/0000/"

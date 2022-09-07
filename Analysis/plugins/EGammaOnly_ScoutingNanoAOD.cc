@@ -139,7 +139,7 @@ private:
   vector<Float16_t> Electron_pt;
   vector<Float16_t> Electron_eta;
   vector<Float16_t> Electron_phi;
-  vector<Float16_t> Electron_m;
+  //vector<Float16_t> Electron_m;
   vector<Float16_t> Electron_d0;
   vector<Float16_t> Electron_dz;
   vector<Float16_t> Electron_detain;
@@ -243,7 +243,7 @@ EGammaOnly_ScoutingNanoAOD::EGammaOnly_ScoutingNanoAOD(const edm::ParameterSet& 
   tree->Branch("Electron_pt", &Electron_pt);
   tree->Branch("Electron_eta", &Electron_eta);
   tree->Branch("Electron_phi", &Electron_phi);
-  tree->Branch("Electron_m", &Electron_m);
+  //tree->Branch("Electron_m", &Electron_m);
   tree->Branch("Electron_d0", &Electron_d0);
   tree->Branch("Electron_dz", &Electron_dz);
   tree->Branch("Electron_detain", &Electron_detain);
@@ -378,7 +378,7 @@ void EGammaOnly_ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::Ev
       Electron_pt.push_back(electrons_iter->pt());
       Electron_eta.push_back(electrons_iter->eta());
       Electron_phi.push_back(electrons_iter->phi());	
-      Electron_m.push_back(electrons_iter->m());
+      //Electron_m.push_back(electrons_iter->m());
       Electron_d0.push_back(electrons_iter->d0());
       Electron_dz.push_back(electrons_iter->dz());
       Electron_detain.push_back(electrons_iter->dEtaIn());
@@ -454,7 +454,7 @@ void EGammaOnly_ScoutingNanoAOD::clearVars(){
   Electron_pt.clear();
   Electron_eta.clear();
   Electron_phi.clear();
-  Electron_m.clear();
+  //Electron_m.clear();
   Electron_d0.clear();
   Electron_dz.clear();
   Electron_detain.clear();
