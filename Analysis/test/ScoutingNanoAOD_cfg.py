@@ -134,8 +134,10 @@ process.TFileService = cms.Service("TFileService",
 # Make tree
 process.mmtree = cms.EDAnalyzer('EGammaOnly_ScoutingNanoAOD',
                                 beamspot        = cms.InputTag("hltOnlineBeamSpot"),
-                                electrons        = cms.InputTag("hltScoutingEgammaPacker"),
-                                photons          = cms.InputTag("hltScoutingEgammaPacker"),
+                                #electrons        = cms.InputTag("hltScoutingEgammaPacker"),
+                                #photons          = cms.InputTag("hltScoutingEgammaPacker"),
+                                electrons        = cms.InputTag("hltScoutingEgammaUnseededPacker"),
+                                photons          = cms.InputTag("hltScoutingEgammaUnseededPacker"),
                                 gens = cms.InputTag("genParticles")
                             )
 
