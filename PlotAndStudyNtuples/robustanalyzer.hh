@@ -1,5 +1,5 @@
-#ifndef DATA_ROBUSTANALYZER_H
-#define DATA_ROBUSTANALYZER_H
+#ifndef ROBUSTANALYZER_H
+#define ROBUSTANALYZER_H
 
 #include "TFile.h"
 #include "TString.h"
@@ -8,32 +8,44 @@
 #include "TTreeReader.h"
 #include "TTreeReaderValue.h"
 #include "TTreeReaderArray.h"
+#include "TLorentzVector.h"
 
 using namespace std;
 
-class data_robustanalyzer {
-
- public:
-  data_robustanalyzer(TString, TString, bool);
-  ~data_robustanalyzer();
+class robustanalyzer {
   
+public:
+  robustanalyzer(TString, TString, int, bool, bool);
+  ~robustanalyzer();
+
   void analyzersinglefile(int);
   void addhist(TString);
   void fillhistinevent(TString, vector<int>, vector<TH2F*>, vector<int>, vector<int>, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*);
   void sort(int*, TTreeReaderValue<std::vector<float>> *, int);
-  pair<int,int> inZwindow(vector<int>);
-  //bpg adding
-  void fillHoEvsPt(TH2F* hoevspt, vector<int> signalElectrons);
-  pair<int,int> genMatch(vector<int>);
-  
- private:
+  bool inZwind(TLorentzVector, TLorentzVector);
+  bool inSideBand1(TLorentzVector, TLorentzVector);
+  bool inSideBand2(TLorentzVector, TLorentzVector);
+  bool inSideBand3(TLorentzVector, TLorentzVector);
+  vector< pair<int,int> > diElecGenMatching(vector<int>, vector<int>);
+    
+  private:
 
-  bool isDiEl;
-  
+  int nC;
+  bool isDY;
+  bool isMC;
+    
   TTreeReader* tree;
-  TTreeReaderArray<float> *bsx;
-  TTreeReaderArray<float> *bsy;
-  TTreeReaderArray<float> *bsz;
+  TTreeReaderValue<unsigned int> *n_gen;
+  TTreeReaderValue<vector<int>> *gen_pdg;
+  TTreeReaderValue<vector<float>> *gen_pt;
+  TTreeReaderValue<vector<float>> *gen_eta;
+  TTreeReaderValue<vector<float>> *gen_phi;
+  TTreeReaderValue<vector<float>> *gen_vx;
+  TTreeReaderValue<vector<float>> *gen_vy;
+  TTreeReaderValue<vector<float>> *gen_vz;
+  TTreeReaderValue<vector<int>> *gen_nmoms;
+  TTreeReaderValue<vector<int>> *gen_mompdg;
+  TTreeReaderValue<vector<bool>> *gen_islastcopy;
   TTreeReaderValue<UInt_t> *n_ele;
   TTreeReaderValue<vector<float>> *ele_pt;
   TTreeReaderValue<vector<float>> *ele_eta;
@@ -57,12 +69,8 @@ class data_robustanalyzer {
   TTreeReaderValue<vector<unsigned int>> *ele_seedid;
   TTreeReaderValue<vector<vector<float>>> *ele_enemat;
   TTreeReaderValue<vector<vector<float>>> *ele_timmat;
-
-  //gen branches
-  TTreeReaderValue<vector<float>> *genpart_pt;
-  TTreeReaderValue<vector<float>> *genpart_eta;
-  TTreeReaderValue<vector<float>> *genpart_phi;
-  TTreeReaderValue<vector<int>> *genpart_pdg;
+  TTreeReaderValue<UInt_t> *n_rho;
+  TTreeReaderValue<vector<float>> *rho;
   
   TFile* outfile;
 

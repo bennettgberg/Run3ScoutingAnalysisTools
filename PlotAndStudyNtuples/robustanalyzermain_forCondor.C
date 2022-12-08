@@ -18,9 +18,7 @@ int main(int argc, char* argv[]) {
   ssargv2 >> numCores;
 
   try {    
-    stringstream ss1;
-    ss1<<"hists_data_"<<cnt<<".root";
-    robustanalyzer rana_data("./data/scoutingNTuple.root", ss1.str(), numCores, false, false);
+    robustanalyzer rana_data(argv[3], argv[4], numCores, false, false);
     rana_data.analyzersinglefile(cnt);
   }
   catch (char const* exc) {

@@ -8,3 +8,4 @@ Analysis/test/runCrabDYJets*
 *.out
 *dirplots*
 *.Efmrl
+*.png

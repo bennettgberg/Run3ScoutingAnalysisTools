@@ -1,26 +1,27 @@
 echo "Compiling the C++ files: "
-g++ robustanalyzermain.C data_robustanalyzer.C `root-config --cflags --glibs` -o data_robustanalyzer.out
+g++ robustanalyzermain.C robustanalyzer.C `root-config --cflags --glibs` -o robustanalyzer.out
 
 echo "Compiling successful. Begin execution."
 
-#outname="DoubleElectronGun"
-#DYToLLM50_ScoutingSkim220404_0_18.root
-#outname="DYToLLM50_ScoutingSkim220404"
-outname="DoubleElectron_ScoutingSkim220411"
-#outname="QCD_ScoutingSkim220429"
+./robustanalyzer.out 0 7 &
+proc0=$!
+./robustanalyzer.out 1 7 &
+proc1=$!
+./robustanalyzer.out 2 7 &
+proc2=$!
+./robustanalyzer.out 3 7 &
+proc3=$!
+./robustanalyzer.out 4 7 &
+proc4=$!
+./robustanalyzer.out 5 7 &
+proc5=$!
+./robustanalyzer.out 6 7 &
+proc6=$!
+./robustanalyzer.out 7 7 &
+proc7=$!
 
-#how many processing cores are available to us
-nproc=6
-eosdir="/eos/user/b/bgreenbe/scouting/ntuples/$outname"
-#how many total files there are 
-#ntot=366
-#count the number of files stored in the eos directory of interest.
-ntot=$( ls -l $eosdir | grep -v ^d | wc -l )
-#ntot=100
-nloop=$(( ntot / nproc + 1 ))
-#what file to start the next hadd on
-haddstart=0
-for i in `seq 0 $nloop`
+while [ -d "/proc/${proc0}" -o -d "/proc/${proc1}" -o -d "/proc/${proc2}" -o -d "/proc/${proc3}" -o -d "/proc/${proc4}" -o -d "/proc/${proc5}" -o -d "/proc/${proc6}" -o -d "/proc/${proc7}" ]
+#while [ -d "/proc/${proc0}" -o -d "/proc/${proc1}" -o -d "/proc/${proc2}" -o -d "/proc/${proc3}" ]
 do
     for j in `seq 1 $nproc`
     do
@@ -66,15 +67,16 @@ done
 
 echo "Run over. Clean up and combine files."
 
-rm data_robustanalyzer.out
+rm robustanalyzer.out
 
-#hadd -f hists_DYToLLM50.root hists_DYToLLM50_?.root
-#hadd -f hists_${outname}.root hists_${outname}_*.root
+hadd -f hists_data.root hists_data_?.root
+#hadd -f hists_DoubleElectronGunPt1To300.root hists_DoubleElectronGunPt1To300_?.root
+#hadd -f hists_DoubleElectronGunPt1To300Old.root hists_DoubleElectronGunPt1To300Old_?.root
+#hadd -f hists_QCDPt20To30EmEnriched.root hists_QCDPt20To30EmEnriched_?.root
+#hadd -f hists_QCDPt30To50EmEnriched.root hists_QCDPt30To50EmEnriched_?.root
 
-#rm hists_${outname}_?.root
-#rm hists_${outname}_*.root
-
-#the final file will have the name of the last iteration of the loop. 
-#hadd -f hists_${outname}.root hists_${outname}_*.root
-python hadd_multi.py $outname $ntot $haddstart
-#rm -f hists_${outname}_*.root
+rm hists_data_?.root
+#rm hists_DoubleElectronGunPt1To300_?.root
+#rm hists_DoubleElectronGunPt1To300Old_?.root
+#rm hists_QCDPt20To30EmEnriched_?.root
+#rm hists_QCDPt30To50EmEnriched_?.root

@@ -90,7 +90,7 @@ TCanvas* enhance_plotter(vector<TH1F*> histvec, vector<TString> legNam, TString 
   return c1;
   }*/
 
-TCanvas* enhance_plotter(vector<TH1F*> histvec, vector<TString> legNam, TString xtitle, TString ytitle, float legPos[]=(float []){0.7,0.75,0.95,1}, bool logY=false, float yrange[]=(float []){0.1,1}, bool normalize=false) {
+TCanvas* enhance_plotter(vector<TH1F*> histvec, vector<TString> legNam, TString xtitle, TString ytitle, float legPos[]=(float []){0.7,0.75,0.95,1}, bool logX=false, bool logY=false, float yrange[]=(float []){0.1,1}, bool normalize=false, vector<TString> histtype={"p", "hist"}, vector<int> markerstyle={20,24}, vector<int> markersize={5, 5}, vector<TString> legendmarkerstyle={"lep", "l"}) {
 
   TCanvas *c1 = new TCanvas("c1","c1",1500,1125);
   TPad *pad1 = new TPad("pad1","pad1",0,0,0.075,0.9);
@@ -134,12 +134,14 @@ TCanvas* enhance_plotter(vector<TH1F*> histvec, vector<TString> legNam, TString 
   lat4_r.SetTextSize(0.5);
   lat4_r.SetTextFont(132);
   lat4_r.SetTextAlign(32);
-  lat4_r.DrawLatex(1,0.5,"2021, #sqrt{s} = 14 TeV");
+  lat4_r.DrawLatex(1,0.5,"2022, #sqrt{s} = 13.6 TeV");
 
   pad3->cd();
   gStyle->SetOptStat(0);
+  pad3->SetLogx(logX);
   pad3->SetLogy(logY);
-  pad3->SetLeftMargin(0.1);
+  if(histvec[0]->GetMaximum()>1000 && !logY) pad3->SetLeftMargin(0.125);
+  else pad3->SetLeftMargin(0.1);
   pad3->SetRightMargin(0.05);
   pad3->SetTopMargin(0);
   pad3->SetBottomMargin(0.1);
@@ -148,11 +150,12 @@ TCanvas* enhance_plotter(vector<TH1F*> histvec, vector<TString> legNam, TString 
   histvec[0]->GetXaxis()->SetTickSize(0.05);
   histvec[0]->GetXaxis()->SetLabelFont(132);
   histvec[0]->GetXaxis()->SetLabelSize(0.06);
-  histvec[0]->GetXaxis()->SetLabelOffset(-0.125);
+  if(logX) histvec[0]->GetXaxis()->SetLabelOffset(-0.1);
+  else histvec[0]->GetXaxis()->SetLabelOffset(-0.125);
   histvec[0]->GetYaxis()->SetTicks("+");
   histvec[0]->GetYaxis()->SetLabelFont(132);
   histvec[0]->GetYaxis()->SetLabelSize(0.06);
-  histvec[0]->GetYaxis()->SetLabelOffset(-0.04);
+  histvec[0]->GetYaxis()->SetLabelOffset(-0.035);
 
   for(unsigned int ctr=0; ctr<histvec.size(); ctr++) {
     histvec[ctr]->SetLineWidth(5);
@@ -161,7 +164,9 @@ TCanvas* enhance_plotter(vector<TH1F*> histvec, vector<TString> legNam, TString 
     if(normalize) histvec[ctr]->Scale(1.0/histvec[ctr]->Integral());
     histvec[ctr]->SetMinimum(yrange[0]);
     histvec[ctr]->SetMaximum(yrange[1]);
-    histvec[ctr]->Draw("hist same e1");
+    histvec[ctr]->SetMarkerStyle(markerstyle[ctr]);
+    histvec[ctr]->SetMarkerSize(markersize[ctr]);
+    histvec[ctr]->Draw(histtype[ctr]);
   }
 
   TLegend* leg = new TLegend(legPos[0],legPos[1],legPos[2],legPos[3]);
@@ -169,7 +174,7 @@ TCanvas* enhance_plotter(vector<TH1F*> histvec, vector<TString> legNam, TString 
   leg->SetTextSize(0.065);
   leg->SetBorderSize(0);
   for(unsigned int ctr=0; ctr<histvec.size(); ctr++) {
-    leg->AddEntry(histvec[ctr],legNam[ctr],"l");
+    leg->AddEntry(histvec[ctr],legNam[ctr],legendmarkerstyle[ctr]);
   }
   leg->Draw();
   
@@ -220,7 +225,7 @@ TCanvas* enhance_plotter_rate(vector<TH1F*> histvec, vector<TString> legNam, TSt
   lat4_r.SetTextSize(0.5);
   lat4_r.SetTextFont(132);
   lat4_r.SetTextAlign(32);
-  lat4_r.DrawLatex(1,0.5,"2021, #sqrt{s} = 14 TeV");
+  lat4_r.DrawLatex(1,0.5,"2022, #sqrt{s} = 13.6 TeV");
 
   pad3->cd();
   gStyle->SetOptStat(0);
@@ -238,7 +243,7 @@ TCanvas* enhance_plotter_rate(vector<TH1F*> histvec, vector<TString> legNam, TSt
   histvec[0]->GetYaxis()->SetTicks("+");
   histvec[0]->GetYaxis()->SetLabelFont(132);
   histvec[0]->GetYaxis()->SetLabelSize(0.06);
-  histvec[0]->GetYaxis()->SetLabelOffset(-0.04);
+  histvec[0]->GetYaxis()->SetLabelOffset(-0.035);
   histvec[0]->SetMinimum(yrange[0]);
   histvec[0]->SetMaximum(yrange[1]);
   
