@@ -1,12 +1,32 @@
-executable            = jobTemplate.sh
-getenv                = True
-should_transfer_files = YES
+executable = jobTemplate.sh
+#Step=0
 
-arguments             = $(ClusterId) $(ProcId) $(filename)
-output                = output/output_$(ClusterId)_$(ProcId).out
-error                 = error/error_$(ClusterId)_$(ProcId).err
-log                   = log/log_$(ClusterId)_$(ProcId).log
+should_transfer_files = yes
+when_to_transfer_output = ON_EXIT
 
-+JobFlavour           = "espresso"
+#use_x509userproxy = true
+#Proxy_file = x509up_u104084
+Proxy_path = /afs/cern.ch/user/b/bgreenbe/x509up_u104084
+transfer_input_files = $(Proxy_path)
+#error = err$(Step).Efmrl$(Item)
+#output = out$(Step).Efmrl$(Item)
+#log = log$(Step).Efmrl$(Item)
 
-queue filename from QCDPt80To120_dataFileName_All.txt
+error = errfile_$(PROCESS).err
+output = outfile_$(PROCESS).out
+log = logfile_$(PROCESS).log
+
+request_cpus = 1
+request_memory = 2048MB
+request_disk = 2048MB
+
++JobFlavour = "longlunch"
+
+arguments = $(PROCESS) $(Proxy_path)
+queue 13
+#queue 1
+#queue 8
+#queue 37
+#queue 242
+#queue 43
+#queue 2

@@ -12,6 +12,34 @@ params.register(
 )
 
 params.register(
+    'useWeights',
+    False,
+    VarParsing.multiplicity.singleton,VarParsing.varType.bool,
+    'Flag to indicate whether or not to use the events weights from a Monte Carlo generator'
+)
+
+params.register(
+    'filterTrigger',
+    False,
+    VarParsing.multiplicity.singleton,VarParsing.varType.bool,
+    'Flag to indicate whether or not to ask the event to fire a trigger used in the analysis'
+)
+
+params.register(
+    'filterMuons',
+    False,
+    VarParsing.multiplicity.singleton,VarParsing.varType.bool,
+    'Flag to indicate whether or not to ask the event to contain at least two muons'
+)
+
+params.register(
+    'reducedInfo',
+    False,
+    VarParsing.multiplicity.singleton,VarParsing.varType.bool,
+    'Flag to indicate whether or not to store just the reduced information'
+)
+
+params.register(
     'trigProcess',
     'HLT',
     VarParsing.multiplicity.singleton,VarParsing.varType.string,
@@ -30,6 +58,13 @@ params.register(
     'auto:phase1_2021_realistic',
     VarParsing.multiplicity.singleton,VarParsing.varType.string,
     'Process name for the HLT paths'
+)
+
+params.register(
+    'xsec',
+    0.001,
+    VarParsing.multiplicity.singleton,VarParsing.varType.float,
+    'Cross-section for a Monte Carlo Sample'
 )
 
 params.register(
@@ -65,10 +100,12 @@ process.options = cms.untracked.PSet(
 )
 
 # How many events to process
-process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32( -1 ) )
+process.maxEvents = cms.untracked.PSet( input = cms.untracked.int32(-1) )
 
 process.source = cms.Source("PoolSource",
-                            fileNames = cms.untracked.vstring(params.inputFile),
+                            fileNames = cms.untracked.vstring([
+                                params.inputFile#'file:/pnfs/iihe/cms/store/user/asahasra/DYToLL_M-50_TuneCP5_14TeV-pythia8/ScoutingSkim220127_DYToLLM50Run3Summer21_asahasra/220127_135957/0000/HLT2022_HLT_1.root'
+                            ])
                         )
 
 # Load the standard set of configuration modules
@@ -103,7 +140,7 @@ process.mmtree = cms.EDAnalyzer('EGammaOnly_ScoutingNanoAOD',
                                 #photons          = cms.InputTag("hltScoutingEgammaPacker"),
                                 electrons        = cms.InputTag("hltScoutingEgammaUnseededPacker"),
                                 photons          = cms.InputTag("hltScoutingEgammaUnseededPacker"),
-                                gens = cms.InputTag("genParticles")
+                                gens = cms.InputTag("genParticles"),
                                 isMC = cms.bool(params.isMC),
                                 primaryVtx = cms.InputTag("hltScoutingPrimaryVertexPacker:primaryVtx"),
                                 muons = cms.InputTag("hltScoutingMuonPacker"),
@@ -112,7 +149,8 @@ process.mmtree = cms.EDAnalyzer('EGammaOnly_ScoutingNanoAOD',
                                 AlgInputTag       = cms.InputTag("gtStage2Digis"),
                                 l1tAlgBlkInputTag = cms.InputTag("gtStage2Digis"),
                                 l1tExtBlkInputTag = cms.InputTag("gtStage2Digis"),
-                                l1Seeds           = cms.vstring(L1Info),
+                                l1Seeds           = cms.vstring(L1Info)
                             )
 
+#process.p = cms.Path(                  process.mmtree)
 process.p = cms.Path( process.gtStage2Digis*process.mmtree )

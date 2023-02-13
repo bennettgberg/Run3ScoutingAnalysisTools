@@ -409,15 +409,9 @@ void EGammaOnly_ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::Ev
   using namespace edm;
   using namespace std;
   using namespace reco;
-<<<<<<< HEAD
-  using namespace fastjet;
-  using namespace fastjet::contrib;
-
-  edm::Handle<reco::BeamSpot> beamSpotH;
-  iEvent.getByToken(beamSpotToken, beamSpotH);
-  bool beamValid = beamSpotH.isValid();
-=======
-      
+  //using namespace fastjet;
+  //using namespace fastjet::contrib;
+    
   Handle<vector<reco::GenParticle> >gensH;
   if(isMC) {
     iEvent.getByToken(gensToken, gensH);
@@ -430,7 +424,6 @@ void EGammaOnly_ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::Ev
   Handle<vector<Run3ScoutingMuon> > muonsH;
   iEvent.getByToken(muonsToken, muonsH);
   bool muoValid = muonsH.isValid();
->>>>>>> 088daaf93fd01d3290d41beb3b086d8f45127aaa
 
   Handle<vector<Run3ScoutingElectron> > electronsH;
   iEvent.getByToken(electronsToken, electronsH);
@@ -647,22 +640,6 @@ void EGammaOnly_ScoutingNanoAOD::analyze(const edm::Event& iEvent, const edm::Ev
 }
 
 void EGammaOnly_ScoutingNanoAOD::clearVars(){
-<<<<<<< HEAD
-  genpart_pdg.clear();
-  genpart_pt.clear();
-  genpart_eta.clear();
-  genpart_phi.clear();
-  genpart_m.clear();
-  genpart_vx.clear();
-  genpart_vy.clear();
-  genpart_vz.clear();
-  genpart_nmoms.clear();
-  genpart_mompdg.clear();
-  genpart_fromHardProcessBeforeFSR.clear();
-  genpart_isPromptFS.clear();
-  genpart_isPromptDec.clear();
-  genpart_isDirectPromptTauDecayProdFS.clear();
-=======
   if(isMC) {
     genpart_pdg.clear();
     genpart_pt.clear();
@@ -725,7 +702,6 @@ void EGammaOnly_ScoutingNanoAOD::clearVars(){
   Muon_vx.clear();
   Muon_vy.clear();
   Muon_vz.clear();
->>>>>>> 088daaf93fd01d3290d41beb3b086d8f45127aaa
   Electron_pt.clear();
   Electron_eta.clear();
   Electron_phi.clear();
