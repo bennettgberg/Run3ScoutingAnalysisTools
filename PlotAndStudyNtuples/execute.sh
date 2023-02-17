@@ -8,19 +8,29 @@ echo "Compiling successful. Begin execution."
 ##outname="DYToLLM50_ScoutingSkim220404"
 ##outname="DoubleElectron_ScoutingSkim220411"
 
-outname="DoubleElectron_ScoutingSkim220517"
+#outname="DoubleElectron_ScoutingSkim220517"
+#outname="EtaTo2Mu2E_ScoutingSkim220729"
+#outname="EtaTo2Mu2E_ScoutingSkim221006"
+#outname="EtaTo2Mu2E_ScoutingSkim221208"
+#outname="EtaTo2Mu2E_ScoutingSkim230210"
+#outname="EtaTo2Mu2E_ScoutingSkim230215"
+outname="EtaTo2Mu2E_ScoutingSeededSkim230216"
+#outname="EtaTo2Mu2E_ScoutingSkimSeeded221208"
+#outname="DYToLL_ScoutingSkim220927"
+#outname="BuToKee_ScoutingSkim220816"
+#outname="BuToKee_ScoutingSkim220909"
 #outname="QCD_ScoutingSkim220510"
 #outname='DYToLL_ScoutingSkim220510'
 #outname='DYToLL_ScoutingSkim220712'
 #outname='DYToLL_ScoutingSkim220712MODIF'
 
 #how many processing cores are available to us
-nproc=6
+nproc=1 #6
 eosdir="/eos/user/b/bgreenbe/scouting/ntuples/$outname"
 #how many total files there are 
 #ntot=366
 #count the number of files stored in the eos directory of interest.
-ntot=$( ls -l $eosdir | grep -v ^d | wc -l )
+ntot=65 #15 #143 #$( ls -l $eosdir | grep -v ^d | wc -l )
 #ntot=100
 nloop=$(( ntot / nproc + 1 ))
 #what file to start the next hadd on
@@ -34,8 +44,9 @@ do
         then
             break
         fi
-        echo "analyzing job number $currnum"
-        ./data_robustanalyzer.out $currnum $outname $(( j - 1 )) &
+        #echo "analyzing job number $currnum"
+        #./data_robustanalyzer.out $currnum $outname $(( j - 1 )) &
+        ./data_robustanalyzer.out $currnum $outname $(( j - 1 ))
         eval "proc$j=$!"
 
         #./data_robustanalyzer.out 1 $outname &
@@ -53,11 +64,11 @@ do
     done
 
     #######while [ -d "/proc/${proc0}" -o -d "/proc/${proc1}" -o -d "/proc/${proc2}" -o -d "/proc/${proc3}" -o -d "/proc/${proc4}" -o -d "/proc/${proc5}" -o -d "/proc/${proc6}" ]
-    while [ -d "/proc/${proc1}" -o -d "/proc/${proc2}" -o -d "/proc/${proc3}" -o -d "/proc/${proc4}" -o -d "/proc/${proc5}" -o -d "/proc/${proc6}" ]
-    do
-        echo "====Still executing===="
-        sleep 1
-    done
+    #while [ -d "/proc/${proc1}" -o -d "/proc/${proc2}" -o -d "/proc/${proc3}" -o -d "/proc/${proc4}" -o -d "/proc/${proc5}" -o -d "/proc/${proc6}" ]
+    #do
+    #    #echo "====Still executing===="
+    #    sleep 1
+    #done
     #only hadd every 100 loops to save some time
     if [ $( expr $i % 100 ) == "99" ] 
     then

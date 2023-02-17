@@ -9,9 +9,11 @@
 
 using namespace std;
 
-const float h0 = 2.; //16.;
+const float h0 = 16.; // 16.; //constant parameter for the rho-dep cut, and the H<.2E+h0 cut
+const float h1 = 0.2; //factor on E for the rho-dependent cut
+const float Crho = 0.07; //factor on rho for the rho-dependent cut
 //set issig to false to skip genMatching (only bkg will have the data).
-const bool issig = true; // false;
+const bool issig = true; // false; //true; // false;
 int ngm = 0;
 int npassed = 0;
 int noldpassed = 0;
@@ -26,10 +28,12 @@ data_robustanalyzer::data_robustanalyzer(TString filename, TString outfilename, 
   cout<<"Initializing for file: "<<filename<<endl;
 
   tree = new TTreeReader("mmtree/tree",inpfile);
-  bsx = new TTreeReaderArray<float>((*tree), "beamspot_x");
-  bsy = new TTreeReaderArray<float>((*tree), "beamspot_y");
-  bsz = new TTreeReaderArray<float>((*tree), "beamspot_z");
+  //bsx = new TTreeReaderArray<float>((*tree), "beamspot_x");
+  //bsy = new TTreeReaderArray<float>((*tree), "beamspot_y");
+  //bsz = new TTreeReaderArray<float>((*tree), "beamspot_z");
   n_ele = new TTreeReaderValue<UInt_t>((*tree), "n_ele");
+  n_mu = new TTreeReaderValue<UInt_t>((*tree), "n_mu");
+  n_rho = new TTreeReaderValue<UInt_t>((*tree), "n_rhoval");
   ele_pt = new TTreeReaderValue<vector<float>>((*tree), "Electron_pt");
   ele_eta = new TTreeReaderValue<vector<float>>((*tree), "Electron_eta");
   ele_phi = new TTreeReaderValue<vector<float>>((*tree), "Electron_phi");
@@ -49,9 +53,13 @@ data_robustanalyzer::data_robustanalyzer(TString filename, TString outfilename, 
   ele_r9 = new TTreeReaderValue<vector<float>>((*tree), "Electron_r9");
   ele_smin = new TTreeReaderValue<vector<float>>((*tree), "Electron_smin");
   ele_smaj = new TTreeReaderValue<vector<float>>((*tree), "Electron_smaj");
+  rho      = new TTreeReaderValue<vector<float>>((*tree), "rho");
   ele_seedid = new TTreeReaderValue<vector<unsigned int>>((*tree), "Electron_seedid");
   ele_enemat = new TTreeReaderValue<vector<vector<float>>>((*tree), "Electron_energymatrix");
   ele_timmat = new TTreeReaderValue<vector<vector<float>>>((*tree), "Electron_timingmatrix");
+
+  //Muon info is needed for computing a fairer efficiency.
+  mu_pt = new TTreeReaderValue<vector<float>>((*tree), "Muon_pt");  
 
   //now for the gen branches
   genpart_pt = new TTreeReaderValue<vector<float>>((*tree), "genpart_pt");
@@ -83,7 +91,7 @@ data_robustanalyzer::~data_robustanalyzer() {
 void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt to range from 0 to nCores
 
   int totEntries = tree->GetEntries();
-  cout<<"Total number of entries: "<<totEntries<<endl;
+  //cout<<"Total number of entries: "<<totEntries<<endl;
 
   // Verfied that this logic to parallelize works
   int nCores = 6; // Assume parallel processing over 7 cores where
@@ -109,9 +117,18 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
   //make 2D plot to compare H/E agains pt of electrons in the Z window.
   TH2F* hoevpt = new TH2F("hoevspt", "H/E vs. p_T for genmatched e^-s", 1000, 0, 10, 4000, 0, 4.0);
   TH2F* hoevptBkg = new TH2F("hoevsptBkg", "H/E vs. p_T for e^-s NOT genmatched", 1000, 0, 10, 4000, 0, 4.0);
+  TH2F* EvsE = new TH2F("EvsE", "Sum of ECAL energy matrix vs. Reconstructed E", 15000, 0, 1500, 15000, 0, 1500);
+    //make this to find reasonable starting cut for rho ?
+  TH2F* RhovsH = new TH2F("RhovsH", "Hcal energy vs. Pileup #rho", 600, 0., 60., 10000, 0., 100.); 
+    //make this to find reasonable values for the other parameters in the equation
+  TH2F* HmRhoVsE = new TH2F("HmRhoVsE", "H/E - #rho/E Vs. E", 500, 0., 500., 300, -1.5, 1.5); 
   //hists for efficiency as function of pT
     //all gen electrons
   TH1F* all_gen = new TH1F("allgen", "", 500, 0., 50.);
+    //electrons in events with 2 muons of pT>1.9 GeV (hence should pass L1 trigger)
+  TH1F* all_l1 = new TH1F("alll1", "", 500, 0., 50.);
+    //electrons in events with 2 muons of pT>1.9 GeV (hence should pass L1 trigger), vs. Rho instead of pT
+  TH1F* all_l1_vRho = new TH1F("alll1vRho", "", 100, 0., 100.);
     //gen electrons in the middle barrel region
   TH1F* mid_gen = new TH1F("midgen", "", 500, 0., 50.);
     //gen electrons in the outer barrel region
@@ -145,10 +162,16 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
   TH1F* ecs_sct = new TH1F("ecssct", "", 500, 0., 50.);
     //all gen-matched electrons
   TH1F* all_sig = new TH1F("allsig", "", 500, 0., 50.);
+    //all gen-matched electrons, vs. Rho instead of pT
+  TH1F* all_sig_vRho = new TH1F("allsigvRho", "", 100, 0., 100.);
     //gen-matched electrons passing the new H/E cut
   TH1F* passed_sig = new TH1F("passedsig", "", 500, 0., 50.);
+    //gen-matched electrons passing the rho-dependent H/E cut
+  TH1F* rho_passed_sig = new TH1F("rhopassedsig", "", 500, 0., 50.);
     //gen-matched electrons passing the old H/E cut H/E<.2
   TH1F* old_passed_sig = new TH1F("oldpassedsig", "", 500, 0., 50.);
+    //gen-matched electrons passing the old H/E cut H/E<.2, vs. Rho instead of pT
+  TH1F* old_passed_sig_vRho = new TH1F("oldpassedsigvRho", "", 100, 0., 100.);
     //all non-gen-matched electrons
   TH1F* all_bkg = new TH1F("allbkg", "", 500, 0., 50.);
     //non-gen-matched electrons passing the new H/E cut
@@ -210,6 +233,10 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
   hoevpt->GetYaxis()->SetTitle("H/E");
   hoevpt->SetMarkerColor(2);
   hoevptBkg->SetMarkerColor(3);
+  RhovsH->GetYaxis()->SetTitle("Scouting electron H (GeV)");
+  RhovsH->GetXaxis()->SetTitle("Pileup #rho");
+  HmRhoVsE->GetXaxis()->SetTitle("Scouting electron E (GeV)");
+  HmRhoVsE->GetYaxis()->SetTitle("Scouting electron (H-C_{#rho}*#rho)/E");
   int nZeroe = 0;
   int nNonzeroe = 0;
   // Loop beginning on events
@@ -218,7 +245,7 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
     event++;
     //if(event>100) break;
     //if(event!=283991 && event!=326114) continue;
-    if(event%10000==0) std::cout<<"Processed event: "<<event+1<<std::endl;
+    //if(event%10000==0) std::cout<<"Processed event: "<<event+1<<std::endl;
 
     if((*(*n_ele))<0) cout<<"Error!!! Wrong technical event processing. Negative number of electrons in event."<<endl;;
     if((*(*n_ele))==0) { 
@@ -227,6 +254,14 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
     }
     nNonzeroe++;
     
+    //count how many muons there are in this event with pT>1.9 GeV (event should pass L1 trig if goodmucount>=2)
+    int goodmucount = 0;
+    for(unsigned int mucount=0; mucount < *(*n_mu); mucount++) {
+        if((*mu_pt)->at(mucount) > 1.9){
+            goodmucount++;
+        }
+    }
+
     int ngenele = 0;
     int ngenNotele = 0;
     //fill in the gen electrons histogram
@@ -234,12 +269,19 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
     for(unsigned int genctr=0; genctr < *(*n_genpart); genctr++) {
         //fill only electrons! AND only if is in final state! AND within the ECAL!
         float gen_eta = (*genpart_eta)->at(genctr);
+        float gen_pt = (*genpart_pt)->at(genctr);
         //ALSO going to exclude the EB/EE gap region, where reconstruction efficiency is low.
         if(abs((*genpart_pdg)->at(genctr)) == 11 && (*genpart_isFinalState)->at(genctr) && fabs(gen_eta) < 2.5 && !(fabs(gen_eta) > 1.44 && fabs(gen_eta)<1.56)) {
-            float gen_pt = (*genpart_pt)->at(genctr);
             all_gen->Fill(gen_pt);
             eta_gen->Fill(gen_eta);
             ngenele++;
+        }
+        if(abs((*genpart_pdg)->at(genctr)) == 11 && (*genpart_isFinalState)->at(genctr) && fabs(gen_eta) < 2.5 && !(fabs(gen_eta) > 1.44 && fabs(gen_eta)<1.56) && goodmucount > 1) {
+            all_l1->Fill(gen_pt);          
+            if(gen_pt > 5.0) {
+                float my_rho = (*rho)->at(0);
+                all_l1_vRho->Fill(my_rho);
+            }
         }
         else {
             if(abs((*genpart_pdg)->at(genctr)) == 11) {
@@ -332,7 +374,7 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
     if(noselelidx.size()>0) nosel++;
     //fillhistinevent("nosel", noselelidx, hVe);
     //cout << "starting fillhist." << endl;
-    fillhistinevent("nosel", noselelidx, hVe, noselZwindelidx, notZwindelidx, all_sig, all_sct, mid_sct, out_sct, ecs_sct, passed_sig, all_bkg, passed_bkg, old_passed_sig, old_passed_bkg, eta_sig, eta_old_passed_sig, eta_new_passed_sig, eta_sct, eta_bkg, mid_gen, out_gen, ecs_gen, pass_sct, oldpass_sct, alllead_sct, passlead_sct, oldpasslead_sct);
+    fillhistinevent("nosel", noselelidx, hVe, noselZwindelidx, notZwindelidx, all_sig, all_sig_vRho, all_sct, mid_sct, out_sct, ecs_sct, passed_sig, rho_passed_sig, all_bkg, passed_bkg, old_passed_sig, old_passed_sig_vRho, old_passed_bkg, eta_sig, eta_old_passed_sig, eta_new_passed_sig, eta_sct, eta_bkg, mid_gen, out_gen, ecs_gen, pass_sct, oldpass_sct, alllead_sct, passlead_sct, oldpasslead_sct, EvsE, RhovsH, HmRhoVsE, goodmucount);
     //cout << "done with fillhistinevent." << endl;
     //if(noselZwindelidx.size()>0) noselZwind++;
     if(noselZwindelidx.size()>1 && (noselZwindelidx[0] > -1 || noselZwindelidx[1] > -1) ) noselZwind++;
@@ -356,12 +398,12 @@ void data_robustanalyzer::analyzersinglefile(int splitCnt) { // Assume splitCnt 
 
   cout<<totEntries<<"\t"<<endevent-beginevent<<"\t"<<nosel<<endl;
   cout << "Events with zero electrons: " << nZeroe << "; events with nonzero electrons: " << nNonzeroe << endl;
-  cout << "n gen electrons cut by isLast requirement: " << nLastCut << endl;
+  //cout << "n gen electrons cut by isLast requirement: " << nLastCut << endl;
   cout << "Number of gen matched electrons: " << ngm << "; Number of passing electrons: " << npassed << "; Noldpassing: " << noldpassed << endl;
 }
 
 // Function to fill a set of histograms for gen particles
-void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, vector<TH2F*> hVe, vector<int> elidx_gm, vector<int> elidx_notgm, TH1F* all_sig, TH1F* all_sct, TH1F* mid_sct, TH1F* out_sct, TH1F* ecs_sct, TH1F* passed_sig, TH1F* all_bkg, TH1F* passed_bkg, TH1F* old_passed_sig, TH1F* old_passed_bkg, TH1F* eta_sig, TH1F* eta_old_passed_sig, TH1F* eta_new_passed_sig, TH1F* eta_sct, TH1F* eta_bkg, TH1F* mid_gen, TH1F* out_gen, TH1F* ecs_gen, TH1F* pass_sct, TH1F* oldpass_sct, TH1F* alllead_sct, TH1F* passlead_sct, TH1F* oldpasslead_sct) {
+void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, vector<TH2F*> hVe, vector<int> elidx_gm, vector<int> elidx_notgm, TH1F* all_sig, TH1F* all_sig_vRho, TH1F* all_sct, TH1F* mid_sct, TH1F* out_sct, TH1F* ecs_sct, TH1F* passed_sig, TH1F* rho_passed_sig, TH1F* all_bkg, TH1F* passed_bkg, TH1F* old_passed_sig, TH1F* old_passed_sig_vRho, TH1F* old_passed_bkg, TH1F* eta_sig, TH1F* eta_old_passed_sig, TH1F* eta_new_passed_sig, TH1F* eta_sct, TH1F* eta_bkg, TH1F* mid_gen, TH1F* out_gen, TH1F* ecs_gen, TH1F* pass_sct, TH1F* oldpass_sct, TH1F* alllead_sct, TH1F* passlead_sct, TH1F* oldpasslead_sct, TH2F* EvsE, TH2F* RhovsH, TH2F* HmRhoVsE, int goodmucount) {
 
   if(elidx.size()==0) return;
 
@@ -427,6 +469,7 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
   float passlead_pt = 0.0;
     //highest pt amongst'd've all scouting electrons whomst'd've passed the old cut in this event
   float oldpasslead_pt = 0.0;
+  float my_rho = (*rho)->at(0);
   for(unsigned int ctr=0; ctr<elidx.size(); ctr++) {
     float this_eta = (*ele_eta)->at(elidx[ctr]);
     float this_pt = (*ele_pt)->at(elidx[ctr]);
@@ -444,7 +487,32 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
     for(float engy : energyMatrix) {
         energy_sum += engy;
     }
+    //trying to use reconstructed particle E instead of ECAL deposits??
+    TLorentzVector tlv;
+    tlv.SetPtEtaPhiM( this_pt , this_eta, (*ele_phi)->at(elidx[ctr]) , .0005 );
+    float energy_reco = tlv.E();
+    EvsE->Fill(energy_sum, energy_reco);
+    if (*(*n_rho) < 1 ) {
+        cout << "Error: nrho 0 but electrons??" << endl;
+        continue;
+    }
+    float energy_SC = energy_sum;
+    //apparently we need to use the reco energy instead of the ECAL one :/
+    energy_sum = energy_reco;
     float had_energy = energy_sum * (*ele_hoe)->at(elidx[ctr]);
+
+    //fill RhovsH only in the barrel for now!
+    //  also exclude any 0 values!!
+    if(fabs(this_eta)<2.4 && had_energy > 0.05){
+        RhovsH->Fill(my_rho, had_energy);
+    }
+    //fill in the HminusRho/E vs. E 2d histogram
+    if(fabs(this_eta)<2.4 && had_energy > 0.05){
+        float hmrho = (had_energy - Crho*my_rho)/energy_sum;
+        //cout << "HmRho=" << hmrho << "; E= " << energy_sum << endl;
+        //HmRhoVsE->Fill(energy_sum, hmrho);
+        HmRhoVsE->Fill(energy_SC, hmrho);
+    }
     //see if it passes the old/new cut
     if( had_energy / energy_sum < 0.2) {
         oldpass_sct->Fill(this_pt);
@@ -523,6 +591,8 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
   
 //eta_sig, eta_old_passed_sig, eta_new_passed_sig, eta_sct, eta_bkg
   for(unsigned int ctr=0; ctr<elidx_gm.size(); ctr++) {
+    //do I need this check??
+    if(goodmucount < 2) break;
     if(elidx_gm[ctr] == -1) continue;
     float gen_eta = (*ele_eta)->at(elidx_gm[ctr]);
     //exclude electrons in the low-efficiency region b/t EB and EE.
@@ -532,16 +602,20 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
     ++ngm;
     ++ngmevt;
     vector<float> energyMatrix = (*ele_enemat)->at(elidx_gm[ctr]);
-    float energy_sum = 0.;
-    for(float engy : energyMatrix) {
-        energy_sum += engy;
-    }
+    float Electron_pt = (*ele_pt)->at(elidx_gm[ctr]);
+    //float energy_sum = 0.;
+    //for(float engy : energyMatrix) {
+    //    energy_sum += engy;
+    //}
+    //trying reco e E instead of ECAL deposits to see if this works...
+    TLorentzVector tlv;
+    tlv.SetPtEtaPhiM( Electron_pt , (*ele_eta)->at(elidx_gm[ctr]) , (*ele_phi)->at(elidx_gm[ctr]) , .0005 );
+    float energy_sum = tlv.E();
     //H is H/E * E
     float had_energy = energy_sum * (*ele_hoe)->at(elidx_gm[ctr]);
     if(hVe.size() > 0 && hVe[0] != 0) {
         hVe[0]->Fill(energy_sum, had_energy);
     }
-    float Electron_pt = (*ele_pt)->at(elidx_gm[ctr]);
     float genElectron_pt = (*genpart_pt)->at(ctr);
     if(hVe.size() > 1 && Electron_pt < 5) {
         hVe[1]->Fill(energy_sum, had_energy);
@@ -574,17 +648,30 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
         passed_sig->Fill(genElectron_pt);
         eta_new_passed_sig->Fill(gen_eta);
     }
+    //now that this cut is implemented in the menu, the else *should* never be executed.
     else {
-        //cout << "failed the newcut! newcut = " << newcut << ", had_energy = " << had_energy << endl;
+        //cout << endl << endl << endl;
+        //cout << "***FAILED H<.2E+16 cut*** pt: " << Electron_pt << "; eta: " << gen_eta << "; phi: " << (*ele_phi)->at(elidx_gm[ctr]) << "; H: " << had_energy << "; E: " << energy_sum << endl;
+        //cout << endl << endl << endl;
+    }
+    float rhocut = h0 + h1*energy_sum + my_rho*Crho;
+    if(had_energy < rhocut){
+        rho_passed_sig->Fill(genElectron_pt);
     }
 
     if(had_energy / energy_sum < 0.2) {
         old_passed_sig->Fill(genElectron_pt);
+        if(genElectron_pt > 5.0) {
+            old_passed_sig_vRho->Fill(my_rho);
+        }
         eta_old_passed_sig->Fill(gen_eta);
         ++noldpassed;
         ++noldpassedevt;
     }
     all_sig->Fill(genElectron_pt);
+    if(genElectron_pt > 5.0) {
+        all_sig_vRho->Fill(my_rho);
+    }
     eta_sig->Fill(gen_eta);
     
     float sct_eta = (*ele_eta)->at(elidx_gm[ctr]);
@@ -606,14 +693,18 @@ void data_robustanalyzer::fillhistinevent(TString selection, vector<int> elidx, 
         continue;
     }
     vector<float> energyMatrix = (*ele_enemat)->at(elidx_notgm[ctr]);
-    float energy_sum = 0.;
-    for(float engy : energyMatrix) {
-        energy_sum += engy;
-    }
+    float Electron_pt = (*ele_pt)->at(elidx_notgm[ctr]);
+    //float energy_sum = 0.;
+    //for(float engy : energyMatrix) {
+    //    energy_sum += engy;
+    //}
     //H is H/E * E
+    TLorentzVector tlv;
+    tlv.SetPtEtaPhiM( Electron_pt , (*ele_eta)->at(elidx_notgm[ctr]) , (*ele_phi)->at(elidx_notgm[ctr]) , .0005 );
+    float energy_sum = tlv.E();
+    //
     float had_energy = energy_sum * (*ele_hoe)->at(elidx_notgm[ctr]);
     float newcut = h0 + 0.2*energy_sum;
-    float Electron_pt = (*ele_pt)->at(elidx_notgm[ctr]);
     //cout << "notgenmatched " << ctr << ": E, H, pt: " << energy_sum << ", " << had_energy << ", " << Electron_pt << endl;
     if(had_energy < newcut) {
         //passed the cut
@@ -868,15 +959,20 @@ vector<int> data_robustanalyzer::genMatch(vector<int> electronIdxs, bool domatch
                     energy_sum += engy;
                 }
                 TLorentzVector gen4vec;
-                gen4vec.SetPtEtaPhiM( (*genpart_pt)->at(gp), (*genpart_eta)->at(gp), (*genpart_phi)->at(gp), 0.511 );
+                gen4vec.SetPtEtaPhiM( (*genpart_pt)->at(gp), (*genpart_eta)->at(gp), (*genpart_phi)->at(gp), 0.000511 );
+                TLorentzVector reco4vec;
+                reco4vec.SetPtEtaPhiM( (*ele_pt)->at(el), (*ele_eta)->at(el), (*ele_phi)->at(el), 0.000511 );
+                float reco_energy = reco4vec.Energy();
                 float gen_energy = gen4vec.Energy();
                 //float pt_ratio = (*ele_pt)->at(el) / pt;
-                float e_ratio = energy_sum / gen_energy;
+                //float e_ratio = energy_sum / gen_energy;
+                //cout << "energy matrix sum: " << energy_sum << "; reco energy: " << reco_energy << endl;
+                float e_ratio = reco_energy / gen_energy;
                 //pt_ratio_sctgen->Fill(pt_ratio);
                 e_ratio_sctgen->Fill(e_ratio);
                 //ONLY fill the l20 if the pt of the (gen) electron is < 20 GeV!! (DoubleElectronGun pT goes too high).
                 //if(pt < 20) {
-                if(pt < 20) {
+                if(pt < 10) {
                     e_ratio_sctgenl20->Fill(e_ratio);
                 }
             } //end foundMatch

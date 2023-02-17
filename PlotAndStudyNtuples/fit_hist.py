@@ -6,24 +6,30 @@ rebin = 20 #what factor to rebin by
 #fname = "hists_DoubleElectron_ScoutingSkim220404.root"
 #fname = "hists_DoubleElectron_ScoutingSkim220411.root"
 #fname = "hists_DoubleElectron_ScoutingSkim220506.root"
-fname = "hists_DYToLL_ScoutingSkim220510.root"
+#fname = "hists_DYToLL_ScoutingSkim220510.root"
 #fname = "hists_QCD_ScoutingSkim220510.root"
 #fname = "hists_new.root"
+fname = "hists_EtaTo2Mu2E_ScoutingSkim221208.root"
+if read_fast:
+    fname = "hists_new_Rho.root"
 f = ROOT.TFile(fname)
 f.Print()
 #here's the 2D hist that we have to fit.
 #hname = "hoevsptBkg"
 hname = "hVe"
+#hname = "RhovsH"
 if read_fast:
     hname = "hnew"
 
-if not read_fast:
-    fnew = ROOT.TFile("hists_new.root", "recreate") 
+#if not read_fast:
+#    fnew = ROOT.TFile("hists_new_Rho.root", "recreate") 
 
 #for fitnum in range(0, 7):
-for fitnum in range(7, 8):
+#for fitnum in range(7, 8):
+if 0 == 0:
 
-    h2d = f.Get(hname+str(fitnum))
+    #h2d = f.Get(hname+str(fitnum))
+    h2d = f.Get(hname)
     h2d.Print()
     #h2d.Draw()
     if read_fast:
@@ -39,7 +45,8 @@ for fitnum in range(7, 8):
     print("xmin: %f, xmax: %f, nbins: %d "%(xmin, xmax, nbins))
     if not read_fast:
         #hnew = ROOT.TH1F("hnew"+str(fitnum), "hnew"+str(fitnum), new_nbins, xmin, xmax)
-        hnew = ROOT.TH1F("hnew"+str(fitnum), "hnew"+str(fitnum), nbins, xmin, xmax)
+        #hnew = ROOT.TH1F("hnew"+str(fitnum), "hnew"+str(fitnum), nbins, xmin, xmax)
+        hnew = ROOT.TH1F("hnew", "hnew", nbins, xmin, xmax)
     #for each bin, get the mean y value and std dev y value
     #  then set the point to be mean +/- stdev 
     if not read_fast:
@@ -119,10 +126,12 @@ for fitnum in range(7, 8):
     #h2d.FitSlicesX(f1, 0, -1, 0, "G5 NR", slices)
     #hnew.Draw("colz")
     #hnew.SetMarkerStyle(2)
-    cnew = ROOT.TCanvas("cnew"+str(fitnum), "cnew"+str(fitnum))
+    #cnew = ROOT.TCanvas("cnew"+str(fitnum), "cnew"+str(fitnum))
+    cnew = ROOT.TCanvas("cnew", "cnew")
     cnew.cd()
     #hnew.Draw("hist pe")
-    hnew.GetXaxis().SetTitle("E (GeV)")
+    #hnew.GetXaxis().SetTitle("E (GeV)")
+    hnew.GetXaxis().SetTitle("pileup #rho")
     hnew.GetYaxis().SetTitle("H (GeV)")
     #raw_input("h")
     f1 = ROOT.TF1("f1", "([0]*x + [1])", xmin, 10.)

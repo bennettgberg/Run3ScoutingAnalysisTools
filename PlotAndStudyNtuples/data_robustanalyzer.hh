@@ -19,7 +19,7 @@ class data_robustanalyzer {
   
   void analyzersinglefile(int);
   void addhist(TString);
-  void fillhistinevent(TString, vector<int>, vector<TH2F*>, vector<int>, vector<int>, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*);
+  void fillhistinevent(TString, vector<int>, vector<TH2F*>, vector<int>, vector<int>, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH1F*, TH2F*, TH2F*, TH2F*, int);
   void sort(int*, TTreeReaderValue<std::vector<float>> *, int);
   pair<int,int> inZwindow(vector<int>);
   //bpg adding
@@ -32,11 +32,14 @@ class data_robustanalyzer {
   bool isDiEl;
   
   TTreeReader* tree;
-  TTreeReaderArray<float> *bsx;
-  TTreeReaderArray<float> *bsy;
-  TTreeReaderArray<float> *bsz;
+//  TTreeReaderArray<float> *bsx;
+ // TTreeReaderArray<float> *bsy;
+ // TTreeReaderArray<float> *bsz;
   TTreeReaderValue<UInt_t> *n_ele;
+  TTreeReaderValue<UInt_t> *n_mu;
+  TTreeReaderValue<UInt_t> *n_rho;
   TTreeReaderValue<vector<float>> *ele_pt;
+  TTreeReaderValue<vector<float>> *mu_pt;
   TTreeReaderValue<vector<float>> *ele_eta;
   TTreeReaderValue<vector<float>> *ele_phi;
   //TTreeReaderValue<vector<float>> *ele_m;
@@ -55,6 +58,7 @@ class data_robustanalyzer {
   TTreeReaderValue<vector<float>> *ele_r9;
   TTreeReaderValue<vector<float>> *ele_smin;
   TTreeReaderValue<vector<float>> *ele_smaj;
+  TTreeReaderValue<vector<float>> *rho;
   TTreeReaderValue<vector<unsigned int>> *ele_seedid;
   TTreeReaderValue<vector<vector<float>>> *ele_enemat;
   TTreeReaderValue<vector<vector<float>>> *ele_timmat;
